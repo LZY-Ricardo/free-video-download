@@ -5,6 +5,44 @@ defineProps<{
   info: VideoInfo
 }>()
 
+// 获取有效的缩略图 URL
+const getThumbnailUrl = (thumbnail: string | null, platform: string) => {
+  // 调试日志
+  console.log('Thumbnail check:', { thumbnail, platform })
+
+  // 如果没有缩略图
+  if (!thumbnail) {
+    console.log('No thumbnail provided')
+    return null
+  }
+
+  // 检查是否是透明图片
+  if (thumbnail.includes('transparent.png') || thumbnail.includes('archive/transparent')) {
+    console.log('Using placeholder for transparent image:', platform)
+    return null
+  }
+
+  // 对于 Bilibili，由于防盗链，使用占位符
+  if (platform === 'bilibili') {
+    console.log('Using placeholder for bilibili (due to anti-hotlinking)')
+    return null
+  }
+
+  console.log('Using real thumbnail')
+  return thumbnail
+}
+
+// 获取平台图标
+const getPlatformIcon = (platform: string) => {
+  const icons = {
+    'bilibili': '📺',
+    'youtube': '▶️',
+    'tiktok': '🎵',
+    'instagram': '📸',
+  }
+  return icons[platform] || '🎬'
+}
+
 const formatDuration = (seconds: number) => {
   const minutes = Math.floor(seconds / 60)
   const secs = seconds % 60
@@ -27,13 +65,18 @@ const formatNumber = (num: number) => {
       <!-- 缩略图 -->
       <div class="flex-shrink-0">
         <img
-          v-if="info.thumbnail"
-          :src="info.thumbnail"
+          v-if="getThumbnailUrl(info.thumbnail, info.platform)"
+          :src="getThumbnailUrl(info.thumbnail, info.platform)"
           :alt="info.title"
           class="w-48 h-32 object-cover rounded-lg"
         />
-        <div v-else class="w-48 h-32 bg-gray-200 rounded-lg flex items-center justify-center">
-          <span class="text-gray-400">无缩略图</span>
+        <div
+          v-else
+          class="w-48 h-32 rounded-lg flex flex-col items-center justify-center text-white"
+          style="background: linear-gradient(to bottom right, #3B82F6, #8B5CF6);"
+        >
+          <span class="text-4xl mb-2">{{ getPlatformIcon(info.platform) }}</span>
+          <span class="text-xs font-medium capitalize">{{ info.platform }}</span>
         </div>
       </div>
 

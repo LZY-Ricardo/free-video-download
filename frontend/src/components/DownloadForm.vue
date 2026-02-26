@@ -13,7 +13,8 @@ const {
   error,
   loading,
   getInfo,
-  startDownload
+  startDownload,
+  downloadFile
 } = useDownload()
 
 const handleGetInfo = () => {
@@ -78,6 +79,7 @@ const handleDownload = (options: any) => {
       :progress="progress"
       :speed="speed"
       :status="status"
+      @download-file="downloadFile"
     />
 
     <!-- 支持平台 -->
