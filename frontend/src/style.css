@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+/* 自定义颜色变量 */
+@theme {
+  --color-primary: #0F172A;
+  --color-accent: #1777FF;
+  --color-accent-hover: #0d5fd6;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+}
+
+/* 全局样式 */
+body {
+  margin: 0;
+  padding: 0;
+}
+
+#app {
+  min-height: 100vh;
+}
