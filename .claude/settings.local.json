@@ -28,7 +28,8 @@
       "Bash(python -c \":*)",
       "Bash(find . -name \"*.py\" -exec grep -l \"class VideoInfo\" {} ;)",
       "Bash(git add -A)",
-      "Bash(find . -name \"nul\" -type f -delete)"
+      "Bash(find . -name \"nul\" -type f -delete)",
+      "Bash(python \"C:/Users/lenovo/.codex/skills/cn-commit/scripts/collect_staged_facts.py\")"
     ]
   }
 }
