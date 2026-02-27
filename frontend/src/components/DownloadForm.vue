@@ -27,38 +27,40 @@ const handleDownload = (options: any) => {
 </script>
 
 <template>
-  <div class="max-w-3xl mx-auto px-6 py-12">
-    <!-- 标题 -->
+  <div class="max-w-3xl mx-auto px-6 py-16">
+    <!-- Hero Section -->
     <div class="text-center mb-12">
-      <h1 class="text-4xl font-bold text-primary mb-4">
-        🎬 万能视频下载器
+      <h1 class="text-4xl font-bold text-gray-900 mb-3">
+        万能视频下载器
       </h1>
-      <p class="text-lg text-gray-600">
-        一键下载各大平台视频，快速、免费、简单
+      <p class="text-gray-500">
+        支持 YouTube、Bilibili、TikTok 等 100+ 平台
       </p>
     </div>
 
     <!-- URL 输入 -->
     <div class="mb-6">
-      <div class="relative">
-        <input
-          v-model="url"
-          type="text"
-          placeholder="粘贴视频链接 (支持 YouTube、Bilibili 等)"
-          class="w-full px-6 py-4 pr-40 text-base rounded-lg border border-gray-300 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all"
-          @keyup.enter="handleGetInfo"
-        />
+      <div class="flex gap-3">
+        <div class="flex-1 relative">
+          <input
+            v-model="url"
+            type="text"
+            placeholder="粘贴视频链接..."
+            class="w-full px-5 py-4 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all text-gray-900"
+            @keyup.enter="handleGetInfo"
+          />
+        </div>
         <button
           @click="handleGetInfo"
           :disabled="loading || !url"
-          class="absolute right-2 top-2 px-6 py-2 bg-accent text-white rounded-md hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          class="px-8 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
         >
-          {{ loading && status === 'fetching' ? '获取中...' : '获取信息' }}
+          {{ loading && status === 'fetching' ? '获取中' : '获取视频' }}
         </button>
       </div>
 
       <!-- 错误提示 -->
-      <div v-if="error" class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600">
+      <div v-if="error" class="mt-3 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
         {{ error }}
       </div>
     </div>
@@ -83,28 +85,29 @@ const handleDownload = (options: any) => {
     />
 
     <!-- 支持平台 -->
-    <div class="mt-16 text-center">
-      <h3 class="text-lg font-semibold text-gray-700 mb-6">支持平台</h3>
-      <div class="flex flex-wrap justify-center gap-4">
-        <div class="px-6 py-3 bg-gray-100 rounded-lg">
-          <span class="font-medium">YouTube</span>
+    <div class="mt-20 text-center">
+      <h3 class="text-sm font-medium text-gray-500 mb-6 uppercase tracking-wide">支持平台</h3>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="px-6 py-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+          <span class="font-medium text-gray-700">YouTube</span>
         </div>
-        <div class="px-6 py-3 bg-gray-100 rounded-lg">
-          <span class="font-medium">Bilibili</span>
+        <div class="px-6 py-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+          <span class="font-medium text-gray-700">Bilibili</span>
         </div>
-        <div class="px-6 py-3 bg-gray-100 rounded-lg">
-          <span class="font-medium">TikTok</span>
+        <div class="px-6 py-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+          <span class="font-medium text-gray-700">TikTok</span>
         </div>
-        <div class="px-6 py-3 bg-gray-100 rounded-lg">
-          <span class="font-medium">Instagram</span>
+        <div class="px-6 py-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+          <span class="font-medium text-gray-700">Instagram</span>
         </div>
       </div>
+      <p class="text-sm text-gray-400 mt-6">以及 100+ 其他视频平台</p>
     </div>
   </div>
 </template>
 
 <style scoped>
-input {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+input::placeholder {
+  color: #9ca3af;
 }
 </style>

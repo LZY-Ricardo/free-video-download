@@ -4,7 +4,7 @@ FastAPI 主应用
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.routers import info, download, direct
+from app.routers import info, download, direct, image
 
 # 创建应用
 app = FastAPI(
@@ -26,6 +26,7 @@ app.add_middleware(
 app.include_router(info.router)
 app.include_router(download.router)
 app.include_router(direct.router)
+app.include_router(image.router)
 
 
 @app.get("/")
