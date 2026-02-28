@@ -1,8 +1,17 @@
 <script setup lang="ts">
-import type { Format } from '@/types'
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 
-defineProps<{
+interface Format {
+  format_id: string
+  ext: string
+  quality: string
+  filesize_display: string
+  resolution: string
+  fps_display: string
+  filesize_mb?: number
+}
+
+const props = defineProps<{
   formats: Format[]
 }>()
 
@@ -10,76 +19,185 @@ const emit = defineEmits<{
   download: [options: { format: string; quality: string }]
 }>()
 
-const selectedFormat = ref('mp4')
-const selectedQuality = ref('1080p')
+// 选中的格式 ID
+const selectedFormatId = ref<string>('')
 
-const formatOptions = [
-  { value: 'mp4', label: 'MP4', desc: '视频+音频' },
-  { value: 'mp3', label: 'MP3', desc: '仅音频' },
-  { value: 'webm', label: 'WebM', desc: '高清视频' }
-]
+// 从可用格式中选择一个推荐格式
+const recommendedFormat = computed(() => {
+  if (!props.formats || props.formats.length === 0) return null
 
-const qualities = ['4K', '2K', '1080p', '720p', '480p', '360p']
+  // 优先选择 1080p，如果没有则选择最高质量
+  let format = props.formats.find(f => f.quality === '1080p')
+  if (!format) {
+    // 按质量排序，选择最高的
+    const sorted = [...props.formats].sort((a, b) => {
+      const aHeight = parseInt(a.quality) || 0
+      const bHeight = parseInt(b.quality) || 0
+      return bHeight - aHeight
+    })
+    format = sorted[0]
+  }
+
+  return format
+})
+
+// 当推荐格式变化时，自动选中
+watch(() => recommendedFormat.value, (newFormat) => {
+  if (newFormat && !selectedFormatId.value) {
+    selectedFormatId.value = newFormat.format_id
+  }
+}, { immediate: true })
+
+// 当前选中的格式
+const selectedFormat = computed(() => {
+  return props.formats.find(f => f.format_id === selectedFormatId.value) || recommendedFormat.value
+})
 
 const handleDownload = () => {
+  if (!selectedFormat.value) return
+
+  // 从 quality 中提取数字（如 "1080p" -> "1080"）
+  const quality = selectedFormat.value.quality.replace('p', '')
+
   emit('download', {
-    format: selectedFormat.value,
-    quality: selectedQuality.value
+    format: selectedFormat.value.ext,
+    quality: quality
   })
+}
+
+// 格式化标签
+const getFormatBadge = (ext: string) => {
+  const badges = {
+    'mp4': { text: '推荐', color: 'bg-green-100 text-green-700' },
+    'webm': { text: '高清', color: 'bg-blue-100 text-blue-700' },
+    'mkv': { text: '高清', color: 'bg-blue-100 text-blue-700' }
+  }
+  return badges[ext] || null
+}
+
+// 获取推荐标签
+const isRecommended = (format: Format) => {
+  return recommendedFormat.value?.format_id === format.format_id
 }
 </script>
 
 <template>
   <div class="bg-white border border-gray-200 rounded-xl p-6 mb-6">
-    <h3 class="text-base font-semibold text-gray-900 mb-5">选择下载格式</h3>
+    <h3 class="text-base font-semibold text-gray-900 mb-2">选择下载格式</h3>
+    <p class="text-sm text-gray-500 mb-5">选择最适合您需求的格式和质量</p>
 
-    <!-- 格式选择 -->
-    <div class="mb-6">
-      <label class="block text-sm font-medium text-gray-700 mb-3">文件格式</label>
-      <div class="grid grid-cols-3 gap-3">
-        <button
-          v-for="option in formatOptions"
-          :key="option.value"
-          @click="selectedFormat = option.value"
-          :class="[
-            'p-4 rounded-lg border-2 text-left transition-all',
-            selectedFormat === option.value
-              ? 'border-blue-500 bg-blue-50'
-              : 'border-gray-200 bg-white hover:border-gray-300'
-          ]"
-        >
-          <div class="text-base font-semibold" :class="selectedFormat === option.value ? 'text-blue-700' : 'text-gray-700'">
-            {{ option.label }}
+    <!-- 格式列表 -->
+    <div class="space-y-3 mb-6">
+      <div
+        v-for="format in formats"
+        :key="format.format_id"
+        @click="selectedFormatId = format.format_id"
+        :class="[
+          'p-4 rounded-lg border-2 cursor-pointer transition-all',
+          selectedFormatId === format.format_id
+            ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-500/20'
+            : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+        ]"
+      >
+        <div class="flex items-start justify-between gap-4">
+          <!-- 左侧：主要信息 -->
+          <div class="flex-1">
+            <div class="flex items-center gap-3 mb-2">
+              <!-- 推荐标签 -->
+              <span
+                v-if="isRecommended(format)"
+                class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700"
+              >
+                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.738 1.948-2.93a2 2 0 002.026-1.977l-2.8-2.034a1 1 0 00-.95-.69h-3.462c-.969 0-1.371-1.24-.588-1.81l2.8-2.034a1 1 0 00.364-1.118L9.05 2.927z" />
+                </svg>
+                推荐
+              </span>
+
+              <!-- 格式徽章 -->
+              <span
+                v-if="getFormatBadge(format.ext)"
+                :class="['shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium', getFormatBadge(format.ext)?.color]"
+              >
+                {{ getFormatBadge(format.ext)?.text }}
+              </span>
+
+              <!-- 格式名称和质量 -->
+              <span class="text-base font-semibold text-gray-900">
+                {{ format.ext.toUpperCase() }} - {{ format.quality }}
+              </span>
+            </div>
+
+            <!-- 详细信息 -->
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500">
+              <span class="flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                {{ format.resolution }}
+              </span>
+              <span class="flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                </svg>
+                {{ format.fps_display }}
+              </span>
+              <span class="flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+                {{ format.filesize_display }}
+              </span>
+            </div>
           </div>
-          <div class="text-xs text-gray-500 mt-1">{{ option.desc }}</div>
-        </button>
+
+          <!-- 右侧：选中指示器 -->
+          <div class="shrink-0">
+            <div
+              :class="[
+                'w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all',
+                selectedFormatId === format.format_id
+                  ? 'border-blue-500 bg-blue-500'
+                  : 'border-gray-300'
+              ]"
+            >
+              <svg
+                v-if="selectedFormatId === format.format_id"
+                class="w-3 h-3 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- 质量选择（仅视频格式） -->
-    <div v-if="selectedFormat !== 'mp3'" class="mb-6">
-      <label class="block text-sm font-medium text-gray-700 mb-3">视频质量</label>
-      <div class="flex flex-wrap gap-2">
-        <button
-          v-for="quality in qualities"
-          :key="quality"
-          @click="selectedQuality = quality"
-          :class="[
-            'px-4 py-2 rounded-lg border-2 transition-all text-sm font-medium',
-            selectedQuality === quality
-              ? 'border-blue-500 bg-blue-50 text-blue-700'
-              : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-          ]"
-        >
-          {{ quality }}
-        </button>
+    <!-- 当前选择摘要 -->
+    <div v-if="selectedFormat" class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+      <div class="flex items-center justify-between">
+        <div class="text-sm">
+          <span class="font-medium text-blue-900">已选择：</span>
+          <span class="text-blue-700 ml-2">
+            {{ selectedFormat.ext.toUpperCase() }} - {{ selectedFormat.quality }}
+            ({{ selectedFormat.resolution }}, {{ selectedFormat.fps_display }})
+          </span>
+        </div>
+        <div class="text-sm font-semibold text-blue-700">
+          {{ selectedFormat.filesize_display }}
+        </div>
       </div>
     </div>
 
     <!-- 下载按钮 -->
     <button
       @click="handleDownload"
-      class="w-full py-3.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+      :disabled="!selectedFormat"
+      class="w-full py-3.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
     >
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>

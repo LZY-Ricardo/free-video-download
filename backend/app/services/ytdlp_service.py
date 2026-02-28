@@ -6,7 +6,6 @@ import os
 import asyncio
 from typing import Dict, List, Optional, Callable
 from app.config import settings
-from app.models import VideoInfo
 
 
 class YTDLPService:
@@ -20,7 +19,7 @@ class YTDLPService:
         """确保下载目录存在"""
         os.makedirs(self.download_dir, exist_ok=True)
 
-    def get_video_info(self, url: str) -> VideoInfo:
+    def get_video_info(self, url: str) -> dict:
         """
         获取视频信息（不下载）
 
@@ -34,14 +33,9 @@ class YTDLPService:
             "quiet": True,
             "no_warnings": True,
             "skip_download": True,
-            # 避免 YouTube 机器人验证 - 使用更激进的配置
+            # 避免 YouTube 机器人验证
             "nocheckcertificate": True,
-            "extractor_args": {
-                "youtube": {
-                    "player_client": ["android"],
-                    "player_skip": ["configs", "webpage"],
-                }
-            },
+            # 不指定 player_client 以获取所有可用格式
         }
 
         try:
@@ -92,14 +86,11 @@ class YTDLPService:
             "format": format_selector,
             "outtmpl": os.path.join(self.download_dir, "%(title)s.%(ext)s"),
             "progress_hooks": [self._build_progress_hook(progress_callback)],
+            # 文件已存在时覆盖
+            "overwrite": True,
             # 避免 YouTube 机器人验证
             "nocheckcertificate": True,
-            "extractor_args": {
-                "youtube": {
-                    "player_client": ["android"],
-                    "player_skip": ["configs", "webpage"],
-                }
-            },
+            # 不指定 player_client 以获取所有可用格式
         }
 
         try:
@@ -165,8 +156,9 @@ class YTDLPService:
 
         def hook(d: dict):
             if d["status"] == "downloading" and callback:
+                progress_str = d.get("_percent_str", "0%").replace("%", "")
                 progress_data = {
-                    "progress": d.get("_percent_str", "0%").replace("%", ""),
+                    "progress": progress_str,
                     "speed": d.get("_speed_str", "0KB/s"),
                     "eta": d.get("_eta_str", "00:00"),
                     "downloaded_bytes": d.get("downloaded_bytes", 0),
@@ -179,12 +171,12 @@ class YTDLPService:
         return hook
 
     def _extract_formats(self, formats: List[dict]) -> List[dict]:
-        """提取可用格式"""
+        """提取可用格式，包含详细信息"""
         common_formats = []
         seen = set()
 
         # 定义常用质量
-        preferred_heights = [1080, 720, 480, 360, 240]
+        preferred_heights = [2160, 1440, 1080, 720, 480, 360, 240]
 
         for f in formats:
             # 跳过只有音频的格式（用于视频下载）
@@ -194,19 +186,35 @@ class YTDLPService:
             height = f.get("height")
             ext = f.get("ext")
             file_size = f.get("filesize")
+            width = f.get("width")
+            fps = f.get("fps")
+
+            # 如果没有宽高，跳过
+            if not height or not width:
+                continue
 
             # 创建唯一标识
             key = (ext, height)
 
             if key not in seen and height:
                 seen.add(key)
+
+                # 计算文件大小（MB）
+                filesize_mb = None
+                if file_size and file_size > 0:
+                    filesize_mb = round(file_size / (1024 * 1024), 2)
+
                 common_formats.append(
                     {
                         "format_id": f.get("format_id"),
                         "ext": ext,
                         "quality": f"{height}p",
                         "filesize": file_size,
-                        "fps": f.get("fps"),
+                        "filesize_mb": filesize_mb,
+                        "filesize_display": f"{filesize_mb} MB" if filesize_mb else "未知大小",
+                        "resolution": f"{width}x{height}",
+                        "fps": fps,
+                        "fps_display": f"{fps} FPS" if fps else "未知",
                     }
                 )
 

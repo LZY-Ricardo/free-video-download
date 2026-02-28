@@ -127,6 +127,9 @@ async def proxy_image(
             detail=f"获取图片失败: {str(e)}"
         )
     except Exception as e:
+        import traceback
+        print(f"Image proxy error for URL {url}: {str(e)}")
+        traceback.print_exc()
         raise HTTPException(
             status_code=500,
             detail=f"代理图片时发生错误: {str(e)}"

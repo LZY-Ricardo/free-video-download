@@ -41,7 +41,20 @@
       "Bash(taskkill /F /IM node.exe)",
       "Bash(pip install httpx==0.25.2 -q)",
       "Bash(curl -s \"http://localhost:8000/api/proxy/image?url=http%3A%2F%2Fi1.hdslb.com%2Fbfs%2Farchive%2F1a9b53348d512e16b63d79717e95232aa4db290f.jpg&platform=bilibili\" --output -)",
-      "mcp__web-reader__webReader"
+      "mcp__web-reader__webReader",
+      "Bash(python -c \"import sys, json; d=json.load\\(sys.stdin\\); print\\(''Formats:''\\); [print\\(f\"\"  - {f[''ext'']} {f[''quality'']}: {f[''resolution'']}, {f[''fps_display'']}, {f[''filesize_display'']}\"\"\\) for f in d.get\\(''formats'', []\\)[:5]]\")",
+      "Bash(python -c \"import sys, json; d=json.load\\(sys.stdin\\); fmts=d.get\\(''formats'',[]\\); print\\(f''Total formats: {len\\(fmts\\)}''\\); [print\\(f\"\"{f[''ext'']} {f[''quality'']}: res={f.get\\(''resolution'', ''N/A''\\)}, fps={f[''fps_display'']}, size={f[''filesize_display'']}\"\"\\) for f in fmts[:3]]\")",
+      "Bash(python -c \"import sys, json; d=json.load\\(sys.stdin\\); fmts=d.get\\(''formats'',[]\\); print\\(f''Total formats: {len\\(fmts\\)}''\\); [print\\(f\"\"Format: {f[''ext'']} {f[''quality'']}\"\"\\) for f in fmts[:3]]\")",
+      "Bash(curl -s -X POST http://localhost:8000/api/info -H \"Content-Type: application/json\" -d '{\"\"url\"\":\"\"https://www.youtube.com/watch?v=jNQXAC9IVRw\"\"}')",
+      "Bash(python -c \"import sys, json; d=json.load\\(sys.stdin\\); fmts=d.get\\(''formats'',[]\\); print\\(f''YouTube formats: {len\\(fmts\\)}''\\); [print\\(f\"\"{f[''ext'']} {f[''quality'']}: {f.get\\(''filesize_display'', ''N/A''\\)}\"\"\\) for f in fmts[:5]]\")",
+      "Bash(python -c \"import sys, json; d=json.load\\(sys.stdin\\); print\\(''Formats:''\\); [print\\(f\"\"{f}\"\"\\) for f in d.get\\(''formats'', []\\)[:3]]\")",
+      "Bash(curl -s http://localhost:5174)",
+      "Bash(curl -X POST http://localhost:8000/api/info -H \"Content-Type: application/json\" -d '{\"\"url\"\":\"\"https://www.bilibili.com/video/BV1GJ411x7h7\"\"}')",
+      "Bash(python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload)",
+      "Bash(python -c \"import sys, json; data=json.load\\(sys.stdin\\); print\\(json.dumps\\(data[''formats''][0] if data[''formats''] else {}, indent=2, ensure_ascii=False\\)\\)\")",
+      "Bash(python test_format.py)",
+      "Bash(python -c \"from app.services.ytdlp_service import ytdlp_service; info = ytdlp_service.get_video_info\\(''https://www.bilibili.com/video/BV1GJ411x7h7''\\); print\\(''Keys in first format:'', list\\(info[''formats''][0].keys\\(\\)\\) if info[''formats''] else ''No formats''\\)\")",
+      "Bash(python -c \"import sys, json; data=json.load\\(sys.stdin\\); print\\(''Keys:'', list\\(data[''formats''][0].keys\\(\\)\\) if data[''formats''] else ''No formats''\\); print\\(json.dumps\\(data[''formats''][0] if data[''formats''] else {}, indent=2, ensure_ascii=False\\)\\)\")"
     ]
   }
 }

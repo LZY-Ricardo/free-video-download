@@ -11,12 +11,33 @@ export function useDownload() {
   const speed = ref('0KB/s')
   const error = ref<string | null>(null)
   const loading = ref(false)
+  const extractedUrl = ref<string | null>(null) // 显示提取到的URL
+
+  // 从分享文本中提取URL
+  const extractUrl = (text: string): string => {
+    // 匹配 http/https 开头的 URL
+    const urlPattern = /(https?:\/\/[^\s\u4e00-\u9fa5]+)/g
+    const match = text.match(urlPattern)
+    return match ? match[0] : text
+  }
 
   // 获取视频信息
   const getInfo = async () => {
     if (!url.value) {
       error.value = '请输入视频链接'
       return
+    }
+
+    // 尝试从分享文本中提取URL
+    const originalInput = url.value
+    const cleanUrl = extractUrl(url.value)
+
+    // 如果提取到的URL和输入不同，说明从分享文本中提取了URL
+    if (cleanUrl !== originalInput) {
+      extractedUrl.value = cleanUrl
+      url.value = cleanUrl
+    } else {
+      extractedUrl.value = null
     }
 
     loading.value = true
@@ -80,13 +101,24 @@ export function useDownload() {
           loading.value = false
           clearInterval(interval)
         }
-      } catch (err) {
-        error.value = '获取状态失败'
+      } catch (err: any) {
+        // 如果是 404 错误（任务不存在），可能是下载已完成但任务被清理
+        // 不应该认为是错误
+        if (err.response?.status === 404) {
+          // 检查是否已经有进度
+          if (progress.value > 0) {
+            status.value = 'completed'
+            loading.value = false
+            clearInterval(interval)
+            return
+          }
+        }
+        error.value = err.response?.data?.detail || '获取状态失败'
         status.value = 'error'
         loading.value = false
         clearInterval(interval)
       }
-    }, 1000) // 每秒更新一次
+    }, 500) // 每0.5秒更新一次
   }
 
   // 下载文件
@@ -115,6 +147,7 @@ export function useDownload() {
     speed,
     error,
     loading,
+    extractedUrl,
     getInfo,
     startDownload,
     downloadFile,

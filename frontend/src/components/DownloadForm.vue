@@ -12,6 +12,7 @@ const {
   speed,
   error,
   loading,
+  extractedUrl,
   getInfo,
   startDownload,
   downloadFile
@@ -63,14 +64,36 @@ const handleDownload = (options: any) => {
       <div v-if="error" class="mt-3 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
         {{ error }}
       </div>
+
+      <!-- URL提取提示 -->
+      <div v-if="extractedUrl" class="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        <span class="flex-1">已自动提取链接：{{ extractedUrl }}</span>
+      </div>
     </div>
 
     <!-- 视频信息 -->
     <VideoInfo v-if="videoInfo && status === 'ready'" :info="videoInfo" />
 
+    <!-- 特殊提示信息（如抖音提示） -->
+    <div v-if="videoInfo && status === 'ready' && videoInfo.error" class="mb-6 p-5 bg-blue-50 border border-blue-200 rounded-lg">
+      <div class="flex items-start gap-3">
+        <svg class="w-6 h-6 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 9h6m-6 0h6"></path>
+        </svg>
+        <div class="flex-1">
+          <h4 class="text-sm font-semibold text-blue-900 mb-2">平台提示</h4>
+          <p class="text-sm text-blue-700 whitespace-pre-line">{{ videoInfo.error }}</p>
+        </div>
+      </div>
+    </div>
+
     <!-- 格式选择器 -->
     <FormatSelector
-      v-if="videoInfo && status === 'ready'"
+      v-if="videoInfo && status === 'ready' && !videoInfo.error"
       :formats="videoInfo.formats"
       @download="handleDownload"
     />
