@@ -2,6 +2,7 @@
 应用配置
 """
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
 
 
 class Settings(BaseSettings):
@@ -27,6 +28,26 @@ class Settings(BaseSettings):
     # 限流配置
     RATE_LIMIT_REQUESTS: int = 5
     RATE_LIMIT_PERIOD: int = 60  # 秒
+
+    # AI 配置（可选，未配置时使用本地规则回退）
+    AI_PROVIDER: str = "openai_compatible"
+    AI_MODEL: str = "gpt-4o-mini"
+    AI_API_BASE_URL: str = "https://api.openai.com/v1"
+    AI_API_KEY: str = ""
+    AI_TIMEOUT_SECONDS: int = 60
+    AI_MAX_TRANSCRIPT_SEGMENTS: int = 400
+    AI_NORMALIZE_ZH_TO_SIMPLIFIED: bool = True
+
+    @field_validator("DEBUG", mode="before")
+    @classmethod
+    def normalize_debug(cls, value):
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"release", "prod", "production", "false", "0", "off", "no"}:
+                return False
+            if normalized in {"debug", "true", "1", "on", "yes"}:
+                return True
+        return value
 
     class Config:
         env_file = ".env"

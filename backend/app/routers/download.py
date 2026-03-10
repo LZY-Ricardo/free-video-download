@@ -80,7 +80,7 @@ def _run_download(task_id: str, url: str, format: str, quality: str):
                 if data.get("status") == "finished":
                     task_manager.update_task(task_id, progress=100, status="completed")
                 else:
-                    progress = float(data.get("progress", 0))
+                    progress = _safe_float(data.get("progress", 0))
                     speed = data.get("speed", "0KB/s")
                     task_manager.update_task(
                         task_id,
@@ -105,6 +105,18 @@ def _run_download(task_id: str, url: str, format: str, quality: str):
         print(f"Download error: {error_msg}")
         traceback.print_exc()
         task_manager.update_task(task_id, status="failed", error=error_msg)
+
+
+def _safe_float(value) -> float:
+    """安全转换为 float，兼容字符串和异常格式"""
+    try:
+        return float(value)
+    except Exception:
+        text = str(value)
+        match = re.search(r"([0-9]+(?:\.[0-9]+)?)", text)
+        if match:
+            return float(match.group(1))
+        return 0.0
 
 
 @router.get("/download/status/{task_id}", response_model=TaskStatus)

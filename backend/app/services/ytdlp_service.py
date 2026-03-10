@@ -4,6 +4,7 @@ yt-dlp 服务封装
 import yt_dlp
 import os
 import asyncio
+import re
 from typing import Dict, List, Optional, Callable
 from app.config import settings
 
@@ -156,11 +157,12 @@ class YTDLPService:
 
         def hook(d: dict):
             if d["status"] == "downloading" and callback:
-                progress_str = d.get("_percent_str", "0%").replace("%", "")
+                progress_str = d.get("_percent_str", "0%")
+                progress_value = self._parse_percent(progress_str)
                 progress_data = {
-                    "progress": progress_str,
-                    "speed": d.get("_speed_str", "0KB/s"),
-                    "eta": d.get("_eta_str", "00:00"),
+                    "progress": progress_value,
+                    "speed": self._strip_ansi(str(d.get("_speed_str", "0KB/s"))),
+                    "eta": self._strip_ansi(str(d.get("_eta_str", "00:00"))),
                     "downloaded_bytes": d.get("downloaded_bytes", 0),
                     "total_bytes": d.get("total_bytes") or d.get("total_bytes_estimate", 0),
                 }
@@ -169,6 +171,24 @@ class YTDLPService:
                 callback({"status": "finished"})
 
         return hook
+
+    def _strip_ansi(self, value: str) -> str:
+        """移除 ANSI 颜色转义序列"""
+        ansi_pattern = re.compile(r"\x1b\[[0-9;]*m")
+        return ansi_pattern.sub("", value).strip()
+
+    def _parse_percent(self, value: str) -> float:
+        """
+        解析下载进度百分比，兼容带 ANSI 颜色码/空格/百分号格式
+        """
+        cleaned = self._strip_ansi(value).replace("%", "").strip()
+        try:
+            return float(cleaned)
+        except Exception:
+            match = re.search(r"([0-9]+(?:\.[0-9]+)?)", cleaned)
+            if match:
+                return float(match.group(1))
+            return 0.0
 
     def _extract_formats(self, formats: List[dict]) -> List[dict]:
         """提取可用格式，包含详细信息"""

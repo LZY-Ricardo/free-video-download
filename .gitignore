@@ -1,0 +1,18 @@
+# Runtime artifacts
+backend/downloads/
+backend/image_cache/
+backend/models/
+
+# Local test media
+*.mp4
+*.mkv
+*.webm
+*.mov
+
+# Python caches
+__pycache__/
+*.pyc
+
+# Node build outputs
+frontend/dist/
+frontend/node_modules/

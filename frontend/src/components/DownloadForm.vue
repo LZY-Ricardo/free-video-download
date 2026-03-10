@@ -3,6 +3,7 @@ import { useDownload } from '@/composables/useDownload'
 import VideoInfo from './VideoInfo.vue'
 import FormatSelector from './FormatSelector.vue'
 import ProgressBar from './ProgressBar.vue'
+import AIAssistant from './AIAssistant.vue'
 
 const {
   url,
@@ -106,6 +107,9 @@ const handleDownload = (options: any) => {
       :status="status"
       @download-file="downloadFile"
     />
+
+    <!-- AI 学习助手 -->
+    <AIAssistant :url="url" />
 
     <!-- 支持平台 -->
     <div class="mt-20 text-center">

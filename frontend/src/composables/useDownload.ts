@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import type { VideoInfo, TaskStatus } from '@/types'
 import apiClient from '@/api/client'
 
@@ -73,7 +73,11 @@ export function useDownload() {
       taskId.value = response.data.task_id
 
       // 轮询获取状态
-      pollStatus(taskId.value)
+      if (taskId.value) {
+        pollStatus(taskId.value)
+      } else {
+        throw new Error('未获取到任务 ID')
+      }
     } catch (err: any) {
       error.value = err.response?.data?.detail || '下载失败'
       status.value = 'error'

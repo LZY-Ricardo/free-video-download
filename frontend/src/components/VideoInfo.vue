@@ -1,12 +1,14 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 import type { VideoInfo } from '@/types'
 
-defineProps<{
+const props = defineProps<{
   info: VideoInfo
 }>()
 
 // 获取有效的缩略图 URL（通过代理）
-const getThumbnailUrl = (thumbnail: string | null, platform: string) => {
+const getThumbnailUrl = (thumbnail: string | null | undefined, platform: string) => {
   if (!thumbnail) {
     return null
   }
@@ -23,7 +25,7 @@ const getThumbnailUrl = (thumbnail: string | null, platform: string) => {
 
 // 获取平台图标
 const getPlatformIcon = (platform: string) => {
-  const icons = {
+  const icons: Record<string, string> = {
     'bilibili': '📺',
     'youtube': '▶️',
     'tiktok': '🎵',
@@ -34,7 +36,7 @@ const getPlatformIcon = (platform: string) => {
 
 // 获取平台颜色
 const getPlatformColor = (platform: string) => {
-  const colors = {
+  const colors: Record<string, string> = {
     'bilibili': 'bg-pink-100 text-pink-700',
     'youtube': 'bg-red-100 text-red-700',
     'tiktok': 'bg-gray-100 text-gray-700',
@@ -42,6 +44,8 @@ const getPlatformColor = (platform: string) => {
   }
   return colors[platform] || 'bg-blue-100 text-blue-700'
 }
+
+const thumbnailProxyUrl = computed(() => getThumbnailUrl(props.info.thumbnail, props.info.platform))
 
 const formatDuration = (seconds: number) => {
   const minutes = Math.floor(seconds / 60)
@@ -64,9 +68,9 @@ const formatNumber = (num: number) => {
     <div class="flex flex-col md:flex-row gap-5">
       <!-- 缩略图 -->
       <div class="shrink-0 mx-auto md:mx-0">
-        <div v-if="getThumbnailUrl(info.thumbnail, info.platform)" class="w-full md:w-64 overflow-hidden rounded-lg">
+        <div v-if="thumbnailProxyUrl" class="w-full md:w-64 overflow-hidden rounded-lg">
           <img
-            :src="getThumbnailUrl(info.thumbnail, info.platform)"
+            :src="thumbnailProxyUrl"
             :alt="info.title"
             class="w-full aspect-video object-cover"
           />

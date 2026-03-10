@@ -55,3 +55,95 @@ class TaskStatus(BaseModel):
     eta: int = 0
     file_path: Optional[str] = None
     error: Optional[str] = None
+
+
+class AnalyzeRequest(BaseModel):
+    """AI 分析请求"""
+
+    url: str = Field(..., description="视频 URL")
+
+
+class AnalyzeStartResponse(BaseModel):
+    """AI 分析任务创建响应"""
+
+    task_id: str
+    status: str
+
+
+class TranscriptSegment(BaseModel):
+    """带时间戳的转录片段"""
+
+    start: float
+    end: float
+    timestamp: str
+    text: str
+
+
+class SummarySection(BaseModel):
+    """摘要章节"""
+
+    title: str
+    start: str
+    summary: str
+
+
+class VideoSummary(BaseModel):
+    """视频摘要"""
+
+    overview: str
+    key_points: List[str] = []
+    sections: List[SummarySection] = []
+
+
+class MindMapNode(BaseModel):
+    """思维导图节点"""
+
+    id: str
+    label: str
+    children: List["MindMapNode"] = []
+
+
+class VideoAnalysisResponse(BaseModel):
+    """视频 AI 分析结果"""
+
+    analysis_id: str
+    video_title: str
+    summary: VideoSummary
+    transcript: List[TranscriptSegment]
+    mind_map: MindMapNode
+    transcript_language: Optional[str] = None
+
+
+class AnalyzeTaskStatusResponse(BaseModel):
+    """AI 分析任务状态"""
+
+    task_id: str
+    status: str  # pending, processing, completed, failed
+    stage: str = "pending"
+    progress: float = 0.0
+    error: Optional[str] = None
+    result: Optional[VideoAnalysisResponse] = None
+
+
+class ChatRequest(BaseModel):
+    """基于视频内容的问答请求"""
+
+    analysis_id: str = Field(..., description="分析任务 ID")
+    question: str = Field(..., min_length=1, description="用户问题")
+
+
+class ChatCitation(BaseModel):
+    """问答引用片段"""
+
+    timestamp: str
+    text: str
+
+
+class ChatResponse(BaseModel):
+    """视频问答响应"""
+
+    answer: str
+    citations: List[ChatCitation] = []
+
+
+MindMapNode.model_rebuild()
