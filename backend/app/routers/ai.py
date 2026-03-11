@@ -1,7 +1,9 @@
 """
 AI 视频分析 API
 """
+import json
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 
 from app.models import (
     AnalyzeRequest,
@@ -14,6 +16,10 @@ from app.models import (
 from app.services.video_ai_service import video_ai_service
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
+
+
+def _format_sse_event(event: str, data: dict) -> str:
+    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
 @router.post("/analyze/start", response_model=AnalyzeStartResponse)
@@ -63,3 +69,31 @@ async def chat_with_video(request: ChatRequest):
         raise HTTPException(status_code=404, detail=str(exc))
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"AI 问答失败: {exc}")
+
+
+@router.post("/chat/stream")
+async def chat_with_video_stream(request: ChatRequest):
+    """
+    流式问答接口（SSE）
+    """
+
+    def event_generator():
+        try:
+            for item in video_ai_service.stream_answer(request.analysis_id, request.question):
+                yield _format_sse_event(item["event"], item["data"])
+        except ValueError as exc:
+            yield _format_sse_event("error", {"message": str(exc)})
+            yield _format_sse_event("done", {})
+        except Exception as exc:
+            yield _format_sse_event("error", {"message": f"AI 问答失败: {exc}"})
+            yield _format_sse_event("done", {})
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )

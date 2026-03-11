@@ -92,6 +92,21 @@ POST /api/ai/chat
 }
 ```
 
+### 7.1 基于视频问答（流式，推荐）
+```bash
+POST /api/ai/chat/stream
+{
+  "analysis_id": "uuid",
+  "question": "这个视频的核心知识点是什么？"
+}
+```
+
+响应为 `text/event-stream`，事件类型：
+- `start`：首包，携带引用片段
+- `delta`：增量文本分片
+- `done`：结束事件
+- `error`：错误事件
+
 ## AI 配置（可选）
 
 未配置 AI Key 时，会使用本地规则回退（仍可返回摘要、思维导图和问答）。

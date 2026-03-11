@@ -10,7 +10,7 @@ from html import unescape
 from dataclasses import dataclass, field
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 from urllib.parse import parse_qs, urlparse
 from pathlib import Path
 import shutil
@@ -254,17 +254,15 @@ class VideoAIService:
         """
         针对指定视频分析结果进行问答
         """
-        record = self.analysis_cache.get(analysis_id)
-        if not record:
-            raise ValueError("分析任务不存在或已过期，请先重新执行视频分析。")
-
-        candidates = self._retrieve_relevant_segments(question, record.transcript, top_k=6)
+        record, candidates, citation_segments = self._prepare_chat_context(analysis_id, question)
         answer, citations = self._answer_with_ai_or_fallback(
             question=question,
             title=record.video_title,
             candidates=candidates,
             summary=record.summary,
         )
+        if not citations:
+            citations = citation_segments
 
         return ChatResponse(
             answer=answer,
@@ -273,6 +271,63 @@ class VideoAIService:
                 for seg in citations
             ],
         )
+
+    def stream_answer(self, analysis_id: str, question: str) -> Iterator[Dict[str, Any]]:
+        """
+        流式输出问答结果，优先走大模型 token stream，失败时回退本地答案分片输出。
+        """
+        record, candidates, citation_segments = self._prepare_chat_context(analysis_id, question)
+        citations_payload = [
+            {
+                "timestamp": segment.timestamp,
+                "text": self._truncate(segment.text, 120),
+            }
+            for segment in citation_segments
+        ]
+        yield {"event": "start", "data": {"citations": citations_payload}}
+
+        streamed = False
+        if settings.AI_API_KEY:
+            for delta in self._answer_with_ai_stream(
+                question=question,
+                title=record.video_title,
+                candidates=candidates,
+                summary=record.summary,
+            ):
+                if not delta:
+                    continue
+                streamed = True
+                yield {"event": "delta", "data": {"delta": delta}}
+
+        if not streamed:
+            fallback_answer = self._build_fallback_answer(candidates)
+            for chunk in self._chunk_text_for_stream(fallback_answer):
+                yield {"event": "delta", "data": {"delta": chunk}}
+
+        yield {"event": "done", "data": {"citations": citations_payload}}
+
+    def _prepare_chat_context(
+        self, analysis_id: str, question: str
+    ) -> Tuple[AnalysisRecord, List[TranscriptSegment], List[TranscriptSegment]]:
+        record = self.analysis_cache.get(analysis_id)
+        if not record:
+            raise ValueError("分析任务不存在或已过期，请先重新执行视频分析。")
+
+        candidates = self._retrieve_relevant_segments(question, record.transcript, top_k=6)
+        citation_segments = candidates[:4]
+        return record, candidates, citation_segments
+
+    def _build_fallback_answer(self, candidates: List[TranscriptSegment]) -> str:
+        snippets = [f"[{seg.timestamp}] {seg.text}" for seg in candidates[:4]]
+        if not snippets:
+            return "暂无足够内容回答该问题，请先执行视频分析。"
+        return "根据视频转录内容，与你问题最相关的信息如下：\n" + "\n".join(snippets)
+
+    def _chunk_text_for_stream(self, text: str, chunk_size: int = 24) -> Iterator[str]:
+        if not text:
+            return
+        for index in range(0, len(text), chunk_size):
+            yield text[index : index + chunk_size]
 
     def _extract_video_info(self, url: str) -> dict:
         ydl_opts = {
@@ -1017,15 +1072,7 @@ class VideoAIService:
             if ai_answer:
                 return ai_answer, candidates[:4]
 
-        snippets = [f"[{seg.timestamp}] {seg.text}" for seg in candidates[:4]]
-        if not snippets:
-            return "暂无足够内容回答该问题，请先执行视频分析。", []
-
-        fallback_answer = (
-            "根据视频转录内容，与你问题最相关的信息如下：\n"
-            + "\n".join(snippets)
-        )
-        return fallback_answer, candidates[:4]
+        return self._build_fallback_answer(candidates), candidates[:4]
 
     def _answer_with_ai(
         self,
@@ -1054,6 +1101,31 @@ class VideoAIService:
         if not response:
             return None
         return response.strip()
+
+    def _answer_with_ai_stream(
+        self,
+        question: str,
+        title: str,
+        candidates: List[TranscriptSegment],
+        summary: VideoSummary,
+    ) -> Iterator[str]:
+        context = "\n".join(f"[{s.timestamp}] {s.text}" for s in candidates)
+        system_prompt = (
+            "你是视频学习助手。请基于给定转录片段回答问题，"
+            "答案要简洁、结构化，若证据不足要明确说明。"
+        )
+        user_prompt = (
+            f"视频标题：{title}\n"
+            f"视频总览：{summary.overview}\n"
+            f"用户问题：{question}\n"
+            f"可用证据：\n{context}"
+        )
+        for delta in self._call_ai_model_stream(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            temperature=0.2,
+        ):
+            yield delta
 
     def _call_ai_model(
         self,
@@ -1090,6 +1162,88 @@ class VideoAIService:
                 return data["choices"][0]["message"]["content"]
         except Exception:
             return None
+
+    def _call_ai_model_stream(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        temperature: float = 0.2,
+    ) -> Iterator[str]:
+        if not settings.AI_API_KEY:
+            return
+
+        payload: Dict[str, Any] = {
+            "model": settings.AI_MODEL,
+            "temperature": temperature,
+            "stream": True,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+        }
+        api_base = settings.AI_API_BASE_URL.rstrip("/")
+        url = f"{api_base}/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {settings.AI_API_KEY}",
+            "Content-Type": "application/json",
+        }
+
+        try:
+            with httpx.Client(timeout=settings.AI_TIMEOUT_SECONDS) as client:
+                with client.stream("POST", url, headers=headers, json=payload) as response:
+                    response.raise_for_status()
+                    for line in response.iter_lines():
+                        if not line:
+                            continue
+                        if isinstance(line, bytes):
+                            line = line.decode("utf-8", errors="ignore")
+                        raw = line.strip()
+                        if not raw.startswith("data:"):
+                            continue
+                        data_text = raw[5:].strip()
+                        if data_text == "[DONE]":
+                            break
+                        try:
+                            payload_item = json.loads(data_text)
+                        except json.JSONDecodeError:
+                            continue
+
+                        choice = ((payload_item.get("choices") or [{}])[0] or {})
+                        delta = choice.get("delta") or {}
+                        content = delta.get("content")
+                        text_delta = self._extract_stream_delta_text(content)
+                        if text_delta:
+                            yield text_delta
+        except Exception:
+            return
+
+    def _extract_stream_delta_text(self, content: Any) -> str:
+        if isinstance(content, str):
+            return content
+
+        if isinstance(content, dict):
+            text = content.get("text")
+            if isinstance(text, str):
+                return text
+            return ""
+
+        if isinstance(content, list):
+            text_parts: List[str] = []
+            for item in content:
+                if isinstance(item, str):
+                    text_parts.append(item)
+                    continue
+                if not isinstance(item, dict):
+                    continue
+                if isinstance(item.get("text"), str):
+                    text_parts.append(item["text"])
+                    continue
+                text_payload = item.get("text")
+                if isinstance(text_payload, dict) and isinstance(text_payload.get("value"), str):
+                    text_parts.append(text_payload["value"])
+            return "".join(text_parts)
+
+        return ""
 
     def _tokenize(self, text: str) -> List[str]:
         normalized = re.sub(r"[^\w\u4e00-\u9fa5]+", " ", text.lower()).strip()

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import MarkdownIt from 'markdown-it'
 
 import { useVideoAI } from '@/composables/useVideoAI'
 import MindMapTree from './MindMapTree.vue'
@@ -38,6 +39,27 @@ const onAnalyze = () => {
 
 const onAsk = () => {
   askQuestion()
+}
+
+const markdown = new MarkdownIt({
+  html: false,
+  linkify: true,
+  breaks: true,
+  typographer: false,
+})
+
+const defaultRenderLink =
+  markdown.renderer.rules.link_open ??
+  ((tokens: any, idx: number, options: any, _env: any, self: any) => self.renderToken(tokens, idx, options))
+
+markdown.renderer.rules.link_open = (tokens: any, idx: number, options: any, env: any, self: any) => {
+  tokens[idx]?.attrSet('target', '_blank')
+  tokens[idx]?.attrSet('rel', 'noopener noreferrer nofollow')
+  return defaultRenderLink(tokens, idx, options, env, self)
+}
+
+const renderAnswerMarkdown = (content: string): string => {
+  return markdown.render(content || '')
 }
 </script>
 
@@ -180,7 +202,10 @@ const onAsk = () => {
                 class="rounded-lg border border-gray-100 bg-gray-50 p-3"
               >
                 <p class="text-sm font-medium text-blue-700">问：{{ item.question }}</p>
-                <p class="text-sm text-gray-700 mt-2 whitespace-pre-line leading-6">{{ item.answer }}</p>
+                <div
+                  class="ai-markdown text-sm text-gray-700 mt-2 leading-6"
+                  v-html="renderAnswerMarkdown(item.answer)"
+                ></div>
                 <div v-if="item.citations?.length" class="mt-2">
                   <p class="text-xs text-gray-500 mb-1">引用片段</p>
                   <div
@@ -204,3 +229,67 @@ const onAsk = () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.ai-markdown :deep(p) {
+  margin: 0 0 0.55rem;
+}
+
+.ai-markdown :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+.ai-markdown :deep(ul),
+.ai-markdown :deep(ol) {
+  margin: 0.4rem 0 0.7rem 1.15rem;
+  padding: 0;
+}
+
+.ai-markdown :deep(li) {
+  margin: 0.2rem 0;
+}
+
+.ai-markdown :deep(strong) {
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.ai-markdown :deep(code) {
+  background: #e5e7eb;
+  color: #1e3a8a;
+  border-radius: 5px;
+  padding: 1px 6px;
+  font-size: 0.82em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+}
+
+.ai-markdown :deep(pre) {
+  margin: 0.6rem 0;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.7rem 0.85rem;
+  background: #f8fafc;
+  overflow-x: auto;
+}
+
+.ai-markdown :deep(pre code) {
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  color: #0f172a;
+}
+
+.ai-markdown :deep(blockquote) {
+  margin: 0.55rem 0;
+  border-left: 3px solid #93c5fd;
+  padding: 0.2rem 0 0.2rem 0.7rem;
+  color: #475569;
+}
+
+.ai-markdown :deep(a) {
+  color: #2563eb;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+</style>

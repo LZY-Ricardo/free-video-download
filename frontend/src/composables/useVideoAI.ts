@@ -14,6 +14,11 @@ export interface ChatTurn {
   citations: { timestamp: string; text: string }[]
 }
 
+interface SSEEventMessage {
+  event: string
+  data: any
+}
+
 export function useVideoAI() {
   const analyzing = ref(false)
   const analysisError = ref<string | null>(null)
@@ -71,21 +76,172 @@ export function useVideoAI() {
     analysisError.value = null
 
     const currentQuestion = question.value.trim()
+    chatHistory.value.push({
+      question: currentQuestion,
+      answer: '',
+      citations: [],
+    })
+    const chatIndex = chatHistory.value.length - 1
+    question.value = ''
+
     try {
-      const response = await apiClient.post<VideoChatResponse>('/ai/chat', {
-        analysis_id: analysisResult.value.analysis_id,
-        question: currentQuestion,
-      })
-      chatHistory.value.push({
-        question: currentQuestion,
-        answer: response.data.answer,
-        citations: response.data.citations || [],
-      })
-      question.value = ''
+      await streamQuestionAnswer(analysisResult.value.analysis_id, currentQuestion, chatIndex)
     } catch (err: any) {
-      analysisError.value = err.response?.data?.detail || 'AI 问答失败'
+      analysisError.value = err?.message || err.response?.data?.detail || 'AI 问答失败'
+      const turn = chatHistory.value[chatIndex]
+      if (turn && !turn.answer.trim()) {
+        chatHistory.value.splice(chatIndex, 1)
+      }
     } finally {
       asking.value = false
+    }
+  }
+
+  const streamQuestionAnswer = async (analysisId: string, q: string, chatIndex: number) => {
+    const response = await fetch('/api/ai/chat/stream', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        analysis_id: analysisId,
+        question: q,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error(await readResponseError(response))
+    }
+
+    if (!response.body) {
+      await fetchAnswerWithoutStream(analysisId, q, chatIndex)
+      return
+    }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder('utf-8')
+    let buffer = ''
+
+    while (true) {
+      const { value, done } = await reader.read()
+      if (done) {
+        break
+      }
+
+      buffer += decoder.decode(value, { stream: true })
+      buffer = buffer.replace(/\r\n/g, '\n')
+
+      let boundary = buffer.indexOf('\n\n')
+      while (boundary !== -1) {
+        const rawEvent = buffer.slice(0, boundary).trim()
+        buffer = buffer.slice(boundary + 2)
+        if (rawEvent) {
+          applyStreamEvent(rawEvent, chatIndex)
+        }
+        boundary = buffer.indexOf('\n\n')
+      }
+    }
+
+    buffer += decoder.decode()
+    const tail = buffer.trim()
+    if (tail) {
+      applyStreamEvent(tail, chatIndex)
+    }
+  }
+
+  const applyStreamEvent = (rawEvent: string, chatIndex: number) => {
+    const event = parseSSEEvent(rawEvent)
+    if (!event) {
+      return
+    }
+
+    const turn = chatHistory.value[chatIndex]
+    if (!turn) {
+      return
+    }
+
+    if (event.event === 'delta') {
+      const delta = event.data?.delta
+      if (typeof delta === 'string') {
+        turn.answer += delta
+      }
+      return
+    }
+
+    if (event.event === 'start' || event.event === 'done') {
+      const citations = event.data?.citations
+      if (Array.isArray(citations)) {
+        turn.citations = citations
+      }
+      return
+    }
+
+    if (event.event === 'error') {
+      throw new Error(event.data?.message || 'AI 问答失败')
+    }
+  }
+
+  const parseSSEEvent = (rawEvent: string): SSEEventMessage | null => {
+    if (!rawEvent.trim()) {
+      return null
+    }
+
+    const lines = rawEvent.split('\n')
+    let eventName = 'message'
+    const dataLines: string[] = []
+
+    for (const line of lines) {
+      if (line.startsWith('event:')) {
+        eventName = line.slice(6).trim()
+        continue
+      }
+      if (line.startsWith('data:')) {
+        dataLines.push(line.slice(5).trim())
+      }
+    }
+
+    if (!dataLines.length) {
+      return { event: eventName, data: {} }
+    }
+
+    const dataText = dataLines.join('\n')
+    try {
+      return {
+        event: eventName,
+        data: JSON.parse(dataText),
+      }
+    } catch {
+      return {
+        event: eventName,
+        data: { raw: dataText },
+      }
+    }
+  }
+
+  const fetchAnswerWithoutStream = async (analysisId: string, q: string, chatIndex: number) => {
+    const response = await apiClient.post<VideoChatResponse>('/ai/chat', {
+      analysis_id: analysisId,
+      question: q,
+    })
+    const turn = chatHistory.value[chatIndex]
+    if (!turn) {
+      return
+    }
+    turn.answer = response.data.answer || ''
+    turn.citations = response.data.citations || []
+  }
+
+  const readResponseError = async (response: Response): Promise<string> => {
+    const contentType = response.headers.get('content-type') || ''
+    try {
+      if (contentType.includes('application/json')) {
+        const payload = await response.json()
+        return payload?.detail || payload?.message || `AI 问答失败（HTTP ${response.status}）`
+      }
+      const text = await response.text()
+      return text || `AI 问答失败（HTTP ${response.status}）`
+    } catch {
+      return `AI 问答失败（HTTP ${response.status}）`
     }
   }
 

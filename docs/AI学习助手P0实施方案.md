@@ -1,6 +1,6 @@
 # 万能视频下载器 AI 学习助手（P0）实施方案与实现说明
 
-更新时间：2026-03-10  
+更新时间：2026-03-11  
 适用版本：当前 `main` 工作区（下载功能已完成，新增 AI 学习能力）
 
 ## 1. 背景与目标
@@ -21,7 +21,9 @@
 1. 后端新增 AI 分析 API 与服务  
 2. 前端新增 AI 学习助手区域  
 3. 新增基础自动化测试  
-4. 保持原有下载链路与接口不变
+4. AI 问答改为流式响应（SSE）  
+5. AI 问答回答支持 Markdown 渲染  
+6. 保持原有下载链路与接口不变
 
 ### 2.2 设计原则
 
@@ -34,18 +36,19 @@
 
 ### 3.1 流程总览
 
-1. 用户输入视频 URL，触发 `/api/ai/analyze`  
-2. 后端使用 `yt-dlp` 解析视频信息与字幕轨道  
-3. 下载字幕并解析为“带时间戳片段”  
-4. 生成结构化摘要（总览、要点、章节）  
-5. 基于摘要构建思维导图树  
+1. 用户输入视频 URL，触发 `/api/ai/analyze/start`  
+2. 前端轮询 `/api/ai/analyze/status/{task_id}` 获取阶段进度与分析结果  
+3. 后端使用 `yt-dlp` 解析视频信息与字幕轨道  
+4. 下载字幕并解析为“带时间戳片段”，必要时回退本地 ASR  
+5. 生成结构化摘要（总览、要点、章节）与思维导图树  
 6. 返回 `analysis_id`、摘要、转录、思维导图  
-7. 用户提问时调用 `/api/ai/chat`，根据 `analysis_id` 在缓存中检索上下文并回答
+7. 用户提问时调用 `/api/ai/chat/stream`（SSE），前端增量渲染回答  
+8. 流式不可用时回退 `/api/ai/chat` 一次性返回
 
 ### 3.2 AI 策略（双模式）
 
-1. 有 `AI_API_KEY`：调用 OpenAI-compatible `/chat/completions`  
-2. 无 `AI_API_KEY`：使用本地规则摘要 + 关键词检索问答回退
+1. 有 `AI_API_KEY`：调用 OpenAI-compatible `/chat/completions`（支持 `stream=true`）  
+2. 无 `AI_API_KEY`：使用本地规则摘要 + 关键词检索问答回退，并按分片模拟流式输出
 
 说明：当前默认配置下 `AI_API_KEY=""`，因此运行时使用本地回退逻辑。
 
@@ -100,10 +103,12 @@
 
 1. `analyze_video(url)`：完整分析主流程  
 2. `ask_question(analysis_id, question)`：视频问答主流程  
-3. `_generate_summary_with_ai(...)`：有 key 时结构化摘要  
-4. `_generate_summary_fallback(...)`：回退摘要  
-5. `_answer_with_ai_or_fallback(...)`：回退问答  
-6. `_retrieve_relevant_segments(...)`：问答证据检索
+3. `stream_answer(analysis_id, question)`：流式问答主流程（SSE）  
+4. `_generate_summary_with_ai(...)`：有 key 时结构化摘要  
+5. `_generate_summary_fallback(...)`：回退摘要  
+6. `_answer_with_ai_or_fallback(...)`：一次性问答回退  
+7. `_call_ai_model_stream(...)`：OpenAI-compatible 流式 token 读取  
+8. `_retrieve_relevant_segments(...)`：问答证据检索
 
 ### 4.4 新增 AI 路由
 
@@ -111,17 +116,20 @@
 
 接口：
 
-1. `POST /api/ai/analyze`：返回摘要、转录、思维导图与 `analysis_id`  
-2. `POST /api/ai/chat`：基于 `analysis_id` + 问题返回回答与引用片段
+1. `POST /api/ai/analyze/start`：创建异步分析任务  
+2. `GET /api/ai/analyze/status/{task_id}`：查询分析进度和结果  
+3. `POST /api/ai/analyze`：同步分析（调试/兼容）  
+4. `POST /api/ai/chat`：一次性问答（兼容回退）  
+5. `POST /api/ai/chat/stream`：流式问答（SSE，前端默认使用）
 
 并在 `backend/app/main.py` 注册 `ai.router`。
 
 ### 4.5 示例接口
 
-#### 分析视频
+#### 异步分析（前端默认）
 
 ```http
-POST /api/ai/analyze
+POST /api/ai/analyze/start
 Content-Type: application/json
 
 {
@@ -133,31 +141,50 @@ Content-Type: application/json
 
 ```json
 {
-  "analysis_id": "uuid",
-  "video_title": "标题",
-  "transcript_language": "zh",
-  "summary": {
-    "overview": "......",
-    "key_points": ["......"],
-    "sections": [
-      { "title": "章节A", "start": "00:01:20", "summary": "......" }
-    ]
-  },
-  "transcript": [
-    { "start": 80.0, "end": 86.2, "timestamp": "00:01:20", "text": "......" }
-  ],
-  "mind_map": {
-    "id": "root",
-    "label": "标题",
-    "children": []
+  "task_id": "uuid",
+  "status": "processing"
+}
+```
+
+```http
+GET /api/ai/analyze/status/{task_id}
+```
+
+完成态返回（示意）：
+
+```json
+{
+  "task_id": "uuid",
+  "status": "completed",
+  "stage": "分析完成",
+  "progress": 100,
+  "result": {
+    "analysis_id": "uuid",
+    "video_title": "标题",
+    "transcript_language": "zh",
+    "summary": {
+      "overview": "......",
+      "key_points": ["......"],
+      "sections": [
+        { "title": "章节A", "start": "00:01:20", "summary": "......" }
+      ]
+    },
+    "transcript": [
+      { "start": 80.0, "end": 86.2, "timestamp": "00:01:20", "text": "......" }
+    ],
+    "mind_map": {
+      "id": "root",
+      "label": "标题",
+      "children": []
+    }
   }
 }
 ```
 
-#### 视频问答
+#### 流式视频问答（SSE，推荐）
 
 ```http
-POST /api/ai/chat
+POST /api/ai/chat/stream
 Content-Type: application/json
 
 {
@@ -166,15 +193,20 @@ Content-Type: application/json
 }
 ```
 
-返回（示意）：
+事件流（示意）：
 
-```json
-{
-  "answer": "......",
-  "citations": [
-    { "timestamp": "00:03:10", "text": "......" }
-  ]
-}
+```text
+event: start
+data: {"citations":[{"timestamp":"00:03:10","text":"......"}]}
+
+event: delta
+data: {"delta":"第一个核心观点是..."}
+
+event: delta
+data: {"delta":"第二个核心观点是..."}
+
+event: done
+data: {"citations":[{"timestamp":"00:03:10","text":"......"}]}
 ```
 
 ## 5. 前端实现设计
@@ -201,10 +233,11 @@ Content-Type: application/json
 
 能力：
 
-1. `analyzeVideo(url)` 调用 `/ai/analyze`  
-2. `askQuestion()` 调用 `/ai/chat`  
-3. 管理分析状态、错误状态、问答历史  
-4. 支持重置 AI 状态
+1. `analyzeVideo(url)` 调用 `/ai/analyze/start` + 轮询状态  
+2. `askQuestion()` 调用 `/ai/chat/stream` 并增量更新当前回答  
+3. 流式不可用时自动回退 `/ai/chat`  
+4. 管理分析状态、错误状态、问答历史  
+5. 支持重置 AI 状态
 
 ### 5.3 新增组件
 
@@ -213,7 +246,9 @@ Content-Type: application/json
    - 摘要展示（总览、要点、章节）  
    - 转录滚动区（带时间戳）  
    - 思维导图区  
-   - 视频问答输入与历史
+   - 视频问答输入与历史  
+   - 问答回答 Markdown 渲染（`markdown-it`）  
+   - 链接安全属性注入（`target=_blank` + `rel=noopener noreferrer nofollow`）
 
 2. `frontend/src/components/MindMapTree.vue`  
    - 递归树形渲染思维导图节点
@@ -234,7 +269,8 @@ Content-Type: application/json
 
 1. `backend/test_ai_api.py`  
    - 覆盖 `/api/ai/analyze` 成功/失败  
-   - 覆盖 `/api/ai/chat` 成功/任务不存在
+   - 覆盖 `/api/ai/chat` 成功/任务不存在  
+   - 覆盖 `/api/ai/chat/stream` 成功/异常事件
 
 2. `backend/test_video_ai_service.py`  
    - 覆盖字幕解析  
@@ -248,7 +284,7 @@ cd backend
 python -m unittest test_ai_api.py test_video_ai_service.py
 ```
 
-结果：`Ran 7 tests ... OK`
+结果：`Ran 8 tests ... OK`
 
 ### 6.2 前端验证
 
@@ -267,7 +303,8 @@ npm run build
 2. 无 API Key 时摘要与问答为规则回退，质量低于大模型  
 3. `analysis_id` 缓存在内存，服务重启后失效  
 4. 未实现“点击时间戳联动播放器跳转”  
-5. 未实现“分析结果导出（Markdown/PDF）”
+5. 未实现“分析结果导出（Markdown/PDF）”  
+6. 问答流式阶段尚未提供“停止生成”能力
 
 ## 8. 后续建议（P1）
 
@@ -302,3 +339,5 @@ npm run build
 6. `frontend/src/components/FormatSelector.vue`
 7. `frontend/src/components/VideoInfo.vue`
 8. `frontend/src/composables/useDownload.ts`
+9. `frontend/package.json`
+10. `frontend/package-lock.json`

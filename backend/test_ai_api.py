@@ -114,6 +114,41 @@ class TestAIAPI(unittest.TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertIn("分析任务不存在", response.json()["detail"])
 
+    def test_chat_stream_success(self):
+        mock_stream = iter(
+            [
+                {"event": "start", "data": {"citations": []}},
+                {"event": "delta", "data": {"delta": "这是"}},
+                {"event": "delta", "data": {"delta": "流式回答"}},
+                {"event": "done", "data": {"citations": []}},
+            ]
+        )
+
+        with patch("app.routers.ai.video_ai_service.stream_answer", return_value=mock_stream):
+            response = self.client.post(
+                "/api/ai/chat/stream",
+                json={"analysis_id": "analysis-1", "question": "核心观点是什么？"},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("text/event-stream", response.headers["content-type"])
+        self.assertIn("event: delta", response.text)
+        self.assertIn("流式回答", response.text)
+
+    def test_chat_stream_error_event(self):
+        with patch(
+            "app.routers.ai.video_ai_service.stream_answer",
+            side_effect=ValueError("分析任务不存在"),
+        ):
+            response = self.client.post(
+                "/api/ai/chat/stream",
+                json={"analysis_id": "missing", "question": "问题"},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("event: error", response.text)
+        self.assertIn("分析任务不存在", response.text)
+
 
 if __name__ == "__main__":
     unittest.main()
