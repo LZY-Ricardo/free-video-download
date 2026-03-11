@@ -126,6 +126,31 @@ class VideoAIService:
             result=task.result,
         )
 
+    def build_transcript_download(
+        self, analysis_id: str, format_name: str = "srt"
+    ) -> Tuple[str, str, str]:
+        """
+        基于已分析转录构建可下载字幕文件内容。
+        """
+        record = self.analysis_cache.get(analysis_id)
+        if not record:
+            raise ValueError("分析任务不存在或已过期，请先重新执行视频分析。")
+
+        fmt = (format_name or "srt").strip().lower()
+        builders = {
+            "srt": (self._build_transcript_srt, "application/x-subrip"),
+            "vtt": (self._build_transcript_vtt, "text/vtt"),
+            "txt": (self._build_transcript_txt, "text/plain"),
+        }
+        if fmt not in builders:
+            raise ValueError("不支持的字幕格式，仅支持 srt/vtt/txt。")
+
+        builder, media_type = builders[fmt]
+        content = builder(record.transcript)
+        file_base = self._safe_filename(record.video_title) or f"transcript_{analysis_id[:8]}"
+        filename = f"{file_base}.{fmt}"
+        return content, filename, media_type
+
     def _run_analysis_task(self, task_id: str, url: str):
         def update(progress: float, stage: str):
             self._update_task(task_id, progress=progress, stage=stage, status="processing")
@@ -316,6 +341,49 @@ class VideoAIService:
         candidates = self._retrieve_relevant_segments(question, record.transcript, top_k=6)
         citation_segments = candidates[:4]
         return record, candidates, citation_segments
+
+    def _build_transcript_srt(self, transcript: List[TranscriptSegment]) -> str:
+        lines: List[str] = []
+        index = 1
+        for segment in transcript:
+            text = segment.text.strip()
+            if not text:
+                continue
+            start = self._format_subtitle_time(segment.start, separator=",")
+            end_seconds = segment.end if segment.end > segment.start else segment.start + 0.001
+            end = self._format_subtitle_time(end_seconds, separator=",")
+            lines.extend([str(index), f"{start} --> {end}", text, ""])
+            index += 1
+        return "\n".join(lines).strip() + "\n"
+
+    def _build_transcript_vtt(self, transcript: List[TranscriptSegment]) -> str:
+        lines: List[str] = ["WEBVTT", ""]
+        for segment in transcript:
+            text = segment.text.strip()
+            if not text:
+                continue
+            start = self._format_subtitle_time(segment.start, separator=".")
+            end_seconds = segment.end if segment.end > segment.start else segment.start + 0.001
+            end = self._format_subtitle_time(end_seconds, separator=".")
+            lines.extend([f"{start} --> {end}", text, ""])
+        return "\n".join(lines).strip() + "\n"
+
+    def _build_transcript_txt(self, transcript: List[TranscriptSegment]) -> str:
+        lines = [
+            f"[{segment.timestamp}] {segment.text.strip()}"
+            for segment in transcript
+            if segment.text.strip()
+        ]
+        return ("\n".join(lines).strip() + "\n") if lines else ""
+
+    def _format_subtitle_time(self, seconds: float, separator: str = ",") -> str:
+        safe_seconds = max(0.0, float(seconds))
+        total_ms = int(round(safe_seconds * 1000))
+        hours = total_ms // 3_600_000
+        minutes = (total_ms % 3_600_000) // 60_000
+        secs = (total_ms % 60_000) // 1_000
+        millis = total_ms % 1_000
+        return f"{hours:02d}:{minutes:02d}:{secs:02d}{separator}{millis:03d}"
 
     def _build_fallback_answer(self, candidates: List[TranscriptSegment]) -> str:
         snippets = [f"[{seg.timestamp}] {seg.text}" for seg in candidates[:4]]

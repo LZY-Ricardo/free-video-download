@@ -19,6 +19,8 @@ interface SSEEventMessage {
   data: any
 }
 
+export type TranscriptFormat = 'srt' | 'vtt' | 'txt'
+
 export function useVideoAI() {
   const analyzing = ref(false)
   const analysisError = ref<string | null>(null)
@@ -31,6 +33,7 @@ export function useVideoAI() {
   const asking = ref(false)
   const question = ref('')
   const chatHistory = ref<ChatTurn[]>([])
+  const downloadingTranscriptFormat = ref<TranscriptFormat | null>(null)
 
   const analyzeVideo = async (url: string) => {
     if (!url) {
@@ -256,6 +259,45 @@ export function useVideoAI() {
     asking.value = false
     question.value = ''
     chatHistory.value = []
+    downloadingTranscriptFormat.value = null
+  }
+
+  const downloadTranscript = async (format: TranscriptFormat) => {
+    const analysisId = analysisResult.value?.analysis_id
+    if (!analysisId) {
+      analysisError.value = '请先完成视频分析'
+      return
+    }
+
+    downloadingTranscriptFormat.value = format
+    analysisError.value = null
+
+    try {
+      const response = await fetch(
+        `/api/ai/transcript/download/${encodeURIComponent(analysisId)}?format=${encodeURIComponent(format)}`,
+      )
+      if (!response.ok) {
+        throw new Error(await readResponseError(response))
+      }
+
+      const blob = await response.blob()
+      const contentDisposition = response.headers.get('content-disposition')
+      const fallbackName = `transcript-${analysisId.slice(0, 8)}.${format}`
+      const filename = parseDownloadFilename(contentDisposition) || fallbackName
+
+      const objectUrl = window.URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = objectUrl
+      anchor.download = filename
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      window.URL.revokeObjectURL(objectUrl)
+    } catch (err: any) {
+      analysisError.value = err?.message || '字幕下载失败'
+    } finally {
+      downloadingTranscriptFormat.value = null
+    }
   }
 
   const pollAnalyzeStatus = async (taskId: string) => {
@@ -303,6 +345,24 @@ export function useVideoAI() {
     }
   }
 
+  const parseDownloadFilename = (contentDisposition: string | null): string | null => {
+    if (!contentDisposition) {
+      return null
+    }
+
+    const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i)
+    if (utf8Match?.[1]) {
+      try {
+        return decodeURIComponent(utf8Match[1])
+      } catch {
+        return utf8Match[1]
+      }
+    }
+
+    const filenameMatch = contentDisposition.match(/filename="?([^";]+)"?/i)
+    return filenameMatch?.[1] || null
+  }
+
   return {
     analyzing,
     analysisError,
@@ -313,8 +373,10 @@ export function useVideoAI() {
     asking,
     question,
     chatHistory,
+    downloadingTranscriptFormat,
     analyzeVideo,
     askQuestion,
+    downloadTranscript,
     resetAI,
   }
 }

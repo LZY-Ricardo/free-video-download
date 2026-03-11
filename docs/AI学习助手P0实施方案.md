@@ -23,7 +23,9 @@
 3. 新增基础自动化测试  
 4. AI 问答改为流式响应（SSE）  
 5. AI 问答回答支持 Markdown 渲染  
-6. 保持原有下载链路与接口不变
+6. 新增字幕文件下载（SRT/VTT/TXT）  
+7. 新增思维导图全屏展示与高清导出（PNG/SVG）  
+8. 保持原有下载链路与接口不变
 
 ### 2.2 设计原则
 
@@ -120,7 +122,8 @@
 2. `GET /api/ai/analyze/status/{task_id}`：查询分析进度和结果  
 3. `POST /api/ai/analyze`：同步分析（调试/兼容）  
 4. `POST /api/ai/chat`：一次性问答（兼容回退）  
-5. `POST /api/ai/chat/stream`：流式问答（SSE，前端默认使用）
+5. `POST /api/ai/chat/stream`：流式问答（SSE，前端默认使用）  
+6. `GET /api/ai/transcript/download/{analysis_id}?format=srt|vtt|txt`：字幕文件下载
 
 并在 `backend/app/main.py` 注册 `ai.router`。
 
@@ -236,8 +239,9 @@ data: {"citations":[{"timestamp":"00:03:10","text":"......"}]}
 1. `analyzeVideo(url)` 调用 `/ai/analyze/start` + 轮询状态  
 2. `askQuestion()` 调用 `/ai/chat/stream` 并增量更新当前回答  
 3. 流式不可用时自动回退 `/ai/chat`  
-4. 管理分析状态、错误状态、问答历史  
-5. 支持重置 AI 状态
+4. `downloadTranscript(format)` 下载 SRT/VTT/TXT 字幕  
+5. 管理分析状态、错误状态、问答历史  
+6. 支持重置 AI 状态
 
 ### 5.3 新增组件
 
@@ -245,13 +249,17 @@ data: {"citations":[{"timestamp":"00:03:10","text":"......"}]}
    - AI 分析按钮  
    - 摘要展示（总览、要点、章节）  
    - 转录滚动区（带时间戳）  
+   - 字幕文件下载（SRT/VTT/TXT）  
    - 思维导图区  
+   - 思维导图全屏弹层与快捷关闭（Esc）  
+   - 思维导图导出（高清 PNG + SVG）  
    - 视频问答输入与历史  
    - 问答回答 Markdown 渲染（`markdown-it`）  
    - 链接安全属性注入（`target=_blank` + `rel=noopener noreferrer nofollow`）
 
 2. `frontend/src/components/MindMapTree.vue`  
-   - 递归树形渲染思维导图节点
+   - 递归树形渲染思维导图节点  
+   - 暴露 `downloadPng/downloadSvg` 导出方法
 
 ### 5.4 页面集成
 
@@ -270,12 +278,14 @@ data: {"citations":[{"timestamp":"00:03:10","text":"......"}]}
 1. `backend/test_ai_api.py`  
    - 覆盖 `/api/ai/analyze` 成功/失败  
    - 覆盖 `/api/ai/chat` 成功/任务不存在  
-   - 覆盖 `/api/ai/chat/stream` 成功/异常事件
+   - 覆盖 `/api/ai/chat/stream` 成功/异常事件  
+   - 覆盖 `/api/ai/transcript/download` 成功/格式错误/任务不存在
 
 2. `backend/test_video_ai_service.py`  
    - 覆盖字幕解析  
    - 覆盖回退摘要  
-   - 覆盖思维导图构建
+   - 覆盖思维导图构建  
+   - 覆盖 SRT/VTT/TXT 导出文本构建
 
 执行命令：
 
@@ -284,7 +294,7 @@ cd backend
 python -m unittest test_ai_api.py test_video_ai_service.py
 ```
 
-结果：`Ran 8 tests ... OK`
+结果：`Ran 19 tests ... OK`
 
 ### 6.2 前端验证
 
@@ -303,7 +313,7 @@ npm run build
 2. 无 API Key 时摘要与问答为规则回退，质量低于大模型  
 3. `analysis_id` 缓存在内存，服务重启后失效  
 4. 未实现“点击时间戳联动播放器跳转”  
-5. 未实现“分析结果导出（Markdown/PDF）”  
+5. 未实现“摘要导出（Markdown/PDF）”  
 6. 问答流式阶段尚未提供“停止生成”能力
 
 ## 8. 后续建议（P1）

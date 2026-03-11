@@ -3,7 +3,7 @@ VideoAIService 测试
 """
 import unittest
 
-from app.services.video_ai_service import VideoAIService
+from app.services.video_ai_service import AnalysisRecord, VideoAIService
 
 
 class TestVideoAIService(unittest.TestCase):
@@ -94,6 +94,54 @@ class TestVideoAIService(unittest.TestCase):
         normalized = self.service._normalize_transcript_script(segments, "zh-ASR")
         self.assertIn("代码全部开源", normalized[0].text)
         self.assertIn("开发", normalized[0].text)
+
+    def test_build_transcript_text_formats(self):
+        segments = self.service._parse_subtitle(
+            """WEBVTT
+
+00:00:01.000 --> 00:00:03.000
+第一段字幕
+
+00:00:04.000 --> 00:00:06.000
+第二段字幕
+"""
+        )
+
+        srt_text = self.service._build_transcript_srt(segments)
+        vtt_text = self.service._build_transcript_vtt(segments)
+        txt_text = self.service._build_transcript_txt(segments)
+
+        self.assertIn("00:00:01,000 --> 00:00:03,000", srt_text)
+        self.assertIn("WEBVTT", vtt_text)
+        self.assertIn("00:00:01.000 --> 00:00:03.000", vtt_text)
+        self.assertIn("[00:00:01] 第一段字幕", txt_text)
+
+    def test_build_transcript_download(self):
+        transcript = self.service._parse_subtitle(
+            """WEBVTT
+
+00:00:02.000 --> 00:00:04.000
+测试字幕文本
+"""
+        )
+        summary = self.service._generate_summary_fallback(transcript)
+        mind_map = self.service._build_mind_map("测试标题", summary)
+        self.service.analysis_cache["analysis-test"] = AnalysisRecord(
+            analysis_id="analysis-test",
+            video_title="测试标题",
+            transcript_language="zh",
+            transcript=transcript,
+            summary=summary,
+            mind_map=mind_map,
+        )
+
+        content, filename, media_type = self.service.build_transcript_download("analysis-test", "vtt")
+        self.assertIn("WEBVTT", content)
+        self.assertTrue(filename.endswith(".vtt"))
+        self.assertEqual(media_type, "text/vtt")
+
+        with self.assertRaises(ValueError):
+            self.service.build_transcript_download("analysis-test", "docx")
 
 
 if __name__ == "__main__":

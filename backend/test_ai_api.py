@@ -149,6 +149,37 @@ class TestAIAPI(unittest.TestCase):
         self.assertIn("event: error", response.text)
         self.assertIn("分析任务不存在", response.text)
 
+    def test_download_transcript_success(self):
+        with patch(
+            "app.routers.ai.video_ai_service.build_transcript_download",
+            return_value=("1\n00:00:00,000 --> 00:00:01,000\n测试内容\n", "测试视频.srt", "application/x-subrip"),
+        ):
+            response = self.client.get("/api/ai/transcript/download/analysis-1?format=srt")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("attachment;", response.headers.get("content-disposition", ""))
+        self.assertIn("测试内容", response.text)
+
+    def test_download_transcript_not_found(self):
+        with patch(
+            "app.routers.ai.video_ai_service.build_transcript_download",
+            side_effect=ValueError("分析任务不存在或已过期，请先重新执行视频分析。"),
+        ):
+            response = self.client.get("/api/ai/transcript/download/missing?format=srt")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertIn("分析任务不存在", response.json()["detail"])
+
+    def test_download_transcript_bad_format(self):
+        with patch(
+            "app.routers.ai.video_ai_service.build_transcript_download",
+            side_effect=ValueError("不支持的字幕格式，仅支持 srt/vtt/txt。"),
+        ):
+            response = self.client.get("/api/ai/transcript/download/analysis-1?format=docx")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("不支持的字幕格式", response.json()["detail"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -2,8 +2,10 @@
 AI 视频分析 API
 """
 import json
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import StreamingResponse
+from urllib.parse import quote
+
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import Response, StreamingResponse
 
 from app.models import (
     AnalyzeRequest,
@@ -95,5 +97,35 @@ async def chat_with_video_stream(request: ChatRequest):
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@router.get("/transcript/download/{analysis_id}")
+async def download_transcript(
+    analysis_id: str,
+    format_name: str = Query(alias="format", default="srt"),
+):
+    """
+    下载 AI 分析结果中的字幕文件（支持 srt/vtt/txt）
+    """
+    try:
+        content, filename, media_type = video_ai_service.build_transcript_download(
+            analysis_id=analysis_id,
+            format_name=format_name,
+        )
+    except ValueError as exc:
+        detail = str(exc)
+        status_code = 400 if "不支持的字幕格式" in detail else 404
+        raise HTTPException(status_code=status_code, detail=detail)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"字幕下载失败: {exc}")
+
+    filename_encoded = quote(filename)
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{filename_encoded}"
         },
     )

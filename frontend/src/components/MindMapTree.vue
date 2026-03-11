@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 import type { MindMapNode } from '@/types'
 
@@ -26,6 +26,7 @@ interface Link {
 const props = defineProps<{
   node: MindMapNode
 }>()
+const svgRef = ref<SVGSVGElement | null>(null)
 
 const PADDING_X = 40
 const PADDING_Y = 48
@@ -198,11 +199,90 @@ function estimateTextWidth(text: string): number {
   }
   return width
 }
+
+const buildSvgMarkup = (): string => {
+  const svgEl = svgRef.value
+  if (!svgEl) {
+    throw new Error('思维导图尚未渲染完成')
+  }
+  const clone = svgEl.cloneNode(true) as SVGSVGElement
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
+  clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink')
+  return new XMLSerializer().serializeToString(clone)
+}
+
+const triggerDownload = (blob: Blob, filename: string) => {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
+const downloadSvg = (filenameBase = 'mind-map') => {
+  const svgMarkup = buildSvgMarkup()
+  const blob = new Blob([svgMarkup], { type: 'image/svg+xml;charset=utf-8' })
+  triggerDownload(blob, `${filenameBase}.svg`)
+}
+
+const downloadPng = async (filenameBase = 'mind-map', scale = 3): Promise<void> => {
+  const svgMarkup = buildSvgMarkup()
+  const width = layoutResult.value.width
+  const height = layoutResult.value.height
+  const svgBlob = new Blob([svgMarkup], { type: 'image/svg+xml;charset=utf-8' })
+  const svgUrl = URL.createObjectURL(svgBlob)
+
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image()
+      img.onload = () => resolve(img)
+      img.onerror = () => reject(new Error('导图渲染失败，无法导出 PNG'))
+      img.src = svgUrl
+    })
+
+    const safeScale = Math.max(1, Number.isFinite(scale) ? scale : 1)
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(width * safeScale)
+    canvas.height = Math.round(height * safeScale)
+
+    const context = canvas.getContext('2d')
+    if (!context) {
+      throw new Error('当前浏览器不支持 Canvas 导出')
+    }
+
+    context.setTransform(safeScale, 0, 0, safeScale, 0, 0)
+    context.fillStyle = '#ffffff'
+    context.fillRect(0, 0, width, height)
+    context.drawImage(image, 0, 0, width, height)
+
+    const pngBlob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob) {
+          resolve(blob)
+          return
+        }
+        reject(new Error('PNG 生成失败'))
+      }, 'image/png')
+    })
+    triggerDownload(pngBlob, `${filenameBase}.png`)
+  } finally {
+    URL.revokeObjectURL(svgUrl)
+  }
+}
+
+defineExpose({
+  downloadSvg,
+  downloadPng,
+})
 </script>
 
 <template>
-  <div class="mindmap-canvas rounded-lg bg-slate-50 border border-slate-200 overflow-auto">
+  <div class="mindmap-canvas rounded-lg bg-slate-50 border border-slate-200 overflow-auto w-full h-full">
     <svg
+      ref="svgRef"
       :viewBox="`0 0 ${layoutResult.width} ${layoutResult.height}`"
       :style="svgStyle"
       xmlns="http://www.w3.org/2000/svg"
@@ -265,3 +345,9 @@ function estimateTextWidth(text: string): number {
     </svg>
   </div>
 </template>
+
+<style scoped>
+.mindmap-canvas {
+  min-height: 320px;
+}
+</style>

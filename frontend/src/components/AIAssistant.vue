@@ -1,9 +1,16 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import MarkdownIt from 'markdown-it'
 
-import { useVideoAI } from '@/composables/useVideoAI'
+import { useVideoAI, type TranscriptFormat } from '@/composables/useVideoAI'
 import MindMapTree from './MindMapTree.vue'
+
+type MindMapExportFormat = 'png' | 'svg'
+
+interface MindMapExporter {
+  downloadPng: (filenameBase?: string, scale?: number) => Promise<void>
+  downloadSvg: (filenameBase?: string) => void
+}
 
 const props = defineProps<{
   url: string
@@ -18,11 +25,17 @@ const {
   asking,
   question,
   chatHistory,
+  downloadingTranscriptFormat,
   analyzeVideo,
   askQuestion,
+  downloadTranscript,
 } = useVideoAI()
 
 const activeTab = ref<'summary' | 'transcript' | 'mindmap' | 'qa'>('summary')
+const mindMapFullscreen = ref(false)
+const downloadingMindMapFormat = ref<MindMapExportFormat | null>(null)
+const mindMapRef = ref<MindMapExporter | null>(null)
+const fullscreenMindMapRef = ref<MindMapExporter | null>(null)
 
 const transcriptCount = computed(() => analysisResult.value?.transcript?.length || 0)
 
@@ -33,12 +46,82 @@ const tabItems = [
   { key: 'qa', label: 'AI 问答' },
 ] as const
 
+const transcriptDownloadOptions: { key: TranscriptFormat; label: string }[] = [
+  { key: 'srt', label: '下载 SRT' },
+  { key: 'vtt', label: '下载 VTT' },
+  { key: 'txt', label: '下载 TXT' },
+]
+
+const tabContentClass = computed(() =>
+  activeTab.value === 'mindmap'
+    ? 'p-0 h-[560px] overflow-hidden bg-slate-50'
+    : 'p-4 h-[460px] overflow-y-auto bg-white',
+)
+
 const onAnalyze = () => {
   analyzeVideo(props.url)
 }
 
 const onAsk = () => {
   askQuestion()
+}
+
+const onDownloadTranscript = async (format: TranscriptFormat) => {
+  await downloadTranscript(format)
+}
+
+const openMindMapFullscreen = async () => {
+  mindMapFullscreen.value = true
+  await nextTick()
+}
+
+const closeMindMapFullscreen = () => {
+  mindMapFullscreen.value = false
+}
+
+const sanitizeFilename = (value: string) => value.replace(/[<>:"/\\|?*]+/g, '_').trim()
+
+const getMindMapFileBase = () => {
+  const title = analysisResult.value?.video_title || 'mind-map'
+  const safeTitle = sanitizeFilename(title)
+  return `${safeTitle || 'mind-map'}-mindmap`
+}
+
+const resolveMindMapExporter = (): MindMapExporter | null => {
+  if (mindMapFullscreen.value) {
+    return fullscreenMindMapRef.value || mindMapRef.value
+  }
+  return mindMapRef.value || fullscreenMindMapRef.value
+}
+
+const downloadMindMap = async (format: MindMapExportFormat) => {
+  const exporter = resolveMindMapExporter()
+  if (!analysisResult.value || !exporter) {
+    analysisError.value = '导图尚未就绪，请先完成视频分析'
+    return
+  }
+
+  downloadingMindMapFormat.value = format
+  try {
+    const filenameBase = getMindMapFileBase()
+    if (format === 'png') {
+      await exporter.downloadPng(filenameBase, 3)
+    } else {
+      exporter.downloadSvg(filenameBase)
+    }
+  } catch (error: any) {
+    analysisError.value = error?.message || '思维导图下载失败'
+  } finally {
+    downloadingMindMapFormat.value = null
+  }
+}
+
+const onDownloadMindMapPng = async () => {
+  await downloadMindMap('png')
+}
+
+const onDownloadMindMapSvg = async () => {
+  await downloadMindMap('svg')
 }
 
 const markdown = new MarkdownIt({
@@ -61,6 +144,29 @@ markdown.renderer.rules.link_open = (tokens: any, idx: number, options: any, env
 const renderAnswerMarkdown = (content: string): string => {
   return markdown.render(content || '')
 }
+
+const onWindowKeyDown = (event: KeyboardEvent) => {
+  if (event.key === 'Escape' && mindMapFullscreen.value) {
+    closeMindMapFullscreen()
+  }
+}
+
+watch(mindMapFullscreen, (isOpen) => {
+  if (isOpen) {
+    document.body.style.overflow = 'hidden'
+  } else {
+    document.body.style.overflow = ''
+  }
+})
+
+onMounted(() => {
+  window.addEventListener('keydown', onWindowKeyDown)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onWindowKeyDown)
+  document.body.style.overflow = ''
+})
 </script>
 
 <template>
@@ -117,7 +223,7 @@ const renderAnswerMarkdown = (content: string): string => {
         </div>
       </div>
 
-      <div class="p-4 h-[460px] overflow-y-auto bg-white">
+      <div :class="tabContentClass">
         <template v-if="activeTab === 'summary'">
           <div class="space-y-4">
             <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
@@ -160,20 +266,79 @@ const renderAnswerMarkdown = (content: string): string => {
         </template>
 
         <template v-else-if="activeTab === 'transcript'">
-          <div class="space-y-1">
-            <div
-              v-for="(segment, idx) in analysisResult.transcript"
-              :key="`seg-${idx}`"
-              class="grid grid-cols-[64px_1fr] gap-3 py-2 border-b border-gray-100"
-            >
-              <div class="text-xs text-blue-600 font-medium pt-0.5">{{ segment.timestamp }}</div>
-              <div class="text-sm text-gray-700 leading-6">{{ segment.text }}</div>
+          <div class="h-full flex flex-col">
+            <div class="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3 mb-3">
+              <div>
+                <p class="text-sm font-medium text-gray-800">字幕片段：{{ transcriptCount }}</p>
+                <p class="text-xs text-gray-500 mt-0.5">支持单独下载字幕文件</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <button
+                  v-for="option in transcriptDownloadOptions"
+                  :key="option.key"
+                  @click="onDownloadTranscript(option.key)"
+                  :disabled="downloadingTranscriptFormat !== null"
+                  class="px-3 py-1.5 rounded-md text-xs font-medium border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 disabled:bg-gray-100 disabled:border-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                >
+                  {{
+                    downloadingTranscriptFormat === option.key
+                      ? `${option.key.toUpperCase()} 下载中...`
+                      : option.label
+                  }}
+                </button>
+              </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto pr-1">
+              <div v-if="analysisResult.transcript.length" class="space-y-1">
+                <div
+                  v-for="(segment, idx) in analysisResult.transcript"
+                  :key="`seg-${idx}`"
+                  class="grid grid-cols-[64px_1fr] gap-3 py-2 border-b border-gray-100"
+                >
+                  <div class="text-xs text-blue-600 font-medium pt-0.5">{{ segment.timestamp }}</div>
+                  <div class="text-sm text-gray-700 leading-6">{{ segment.text }}</div>
+                </div>
+              </div>
+              <div v-else class="text-sm text-gray-500 py-8 text-center">暂无字幕内容</div>
             </div>
           </div>
         </template>
 
         <template v-else-if="activeTab === 'mindmap'">
-          <MindMapTree :node="analysisResult.mind_map" />
+          <div class="h-full flex flex-col">
+            <div class="flex items-center justify-between gap-3 px-4 py-3 bg-white border-b border-slate-200">
+              <div>
+                <p class="text-sm font-medium text-slate-800">思维导图浏览与导出</p>
+                <p class="text-xs text-slate-500 mt-0.5">支持全屏查看、高清 PNG、SVG 下载</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <button
+                  @click="openMindMapFullscreen"
+                  class="px-3 py-1.5 rounded-md text-xs font-medium border border-slate-300 text-slate-700 bg-white hover:bg-slate-100 transition-colors"
+                >
+                  全屏查看
+                </button>
+                <button
+                  @click="onDownloadMindMapPng"
+                  :disabled="downloadingMindMapFormat !== null"
+                  class="px-3 py-1.5 rounded-md text-xs font-medium border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 disabled:bg-gray-100 disabled:border-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                >
+                  {{ downloadingMindMapFormat === 'png' ? 'PNG 生成中...' : '下载高清 PNG' }}
+                </button>
+                <button
+                  @click="onDownloadMindMapSvg"
+                  :disabled="downloadingMindMapFormat !== null"
+                  class="px-3 py-1.5 rounded-md text-xs font-medium border border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 disabled:bg-gray-100 disabled:border-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                >
+                  {{ downloadingMindMapFormat === 'svg' ? 'SVG 导出中...' : '下载 SVG' }}
+                </button>
+              </div>
+            </div>
+            <div class="flex-1 p-3 min-h-0">
+              <MindMapTree ref="mindMapRef" :node="analysisResult.mind_map" />
+            </div>
+          </div>
         </template>
 
         <template v-else>
@@ -228,6 +393,50 @@ const renderAnswerMarkdown = (content: string): string => {
       </div>
     </div>
   </div>
+
+  <Teleport to="body">
+    <div
+      v-if="mindMapFullscreen && analysisResult"
+      class="fixed inset-0 z-[1200] bg-slate-900/70 backdrop-blur-sm p-3 sm:p-6"
+      @click.self="closeMindMapFullscreen"
+    >
+      <div class="mx-auto h-full w-full max-w-[1700px] bg-white border border-slate-200 rounded-xl shadow-2xl flex flex-col">
+        <div class="flex items-center justify-between gap-4 px-4 py-3 border-b border-slate-200">
+          <div class="min-w-0">
+            <h4 class="text-sm sm:text-base font-semibold text-slate-900 truncate">
+              {{ analysisResult.video_title }} · 思维导图
+            </h4>
+            <p class="text-xs text-slate-500 mt-0.5">按 Esc 可退出全屏</p>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <button
+              @click="onDownloadMindMapPng"
+              :disabled="downloadingMindMapFormat !== null"
+              class="px-3 py-1.5 rounded-md text-xs font-medium border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 disabled:bg-gray-100 disabled:border-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+            >
+              {{ downloadingMindMapFormat === 'png' ? 'PNG 生成中...' : '下载高清 PNG' }}
+            </button>
+            <button
+              @click="onDownloadMindMapSvg"
+              :disabled="downloadingMindMapFormat !== null"
+              class="px-3 py-1.5 rounded-md text-xs font-medium border border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 disabled:bg-gray-100 disabled:border-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+            >
+              {{ downloadingMindMapFormat === 'svg' ? 'SVG 导出中...' : '下载 SVG' }}
+            </button>
+            <button
+              @click="closeMindMapFullscreen"
+              class="px-3 py-1.5 rounded-md text-xs font-medium border border-slate-300 text-slate-700 bg-white hover:bg-slate-100 transition-colors"
+            >
+              关闭
+            </button>
+          </div>
+        </div>
+        <div class="flex-1 p-3 sm:p-4 min-h-0">
+          <MindMapTree ref="fullscreenMindMapRef" :node="analysisResult.mind_map" />
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
