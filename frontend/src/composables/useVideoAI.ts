@@ -2,8 +2,6 @@ import { ref } from 'vue'
 
 import apiClient from '@/api/client'
 import type {
-  AnalyzeStartResponse,
-  AnalyzeTaskStatusResponse,
   VideoAnalysisResponse,
   VideoChatResponse,
 } from '@/types'
@@ -27,13 +25,17 @@ export function useVideoAI() {
   const analysisResult = ref<VideoAnalysisResponse | null>(null)
   const analysisStage = ref('待开始')
   const analysisProgress = ref(0)
-  const analysisTaskId = ref<string | null>(null)
-  const pollTimer = ref<number | null>(null)
+
+  // 流式分析：逐字输出的 overview 文本 & 视频标题
+  const streamingOverview = ref('')
+  const streamingTitle = ref('')
 
   const asking = ref(false)
   const question = ref('')
   const chatHistory = ref<ChatTurn[]>([])
   const downloadingTranscriptFormat = ref<TranscriptFormat | null>(null)
+
+  let abortController: AbortController | null = null
 
   const analyzeVideo = async (url: string) => {
     if (!url) {
@@ -41,28 +43,137 @@ export function useVideoAI() {
       return
     }
 
+    // 中止上一次流式请求
+    if (abortController) {
+      abortController.abort()
+      abortController = null
+    }
+
     analyzing.value = true
     analysisError.value = null
     analysisResult.value = null
+    streamingOverview.value = ''
+    streamingTitle.value = ''
     chatHistory.value = []
-    analysisStage.value = '创建任务中'
+    analysisStage.value = '连接中'
     analysisProgress.value = 0
-    analysisTaskId.value = null
+
+    abortController = new AbortController()
 
     try {
-      const response = await apiClient.post<AnalyzeStartResponse>('/ai/analyze/start', { url })
-      analysisTaskId.value = response.data.task_id
-      analysisStage.value = '任务已创建'
-      analysisProgress.value = 2
-      await pollAnalyzeStatus(response.data.task_id)
-    } catch (err: any) {
-      analysisError.value = err.response?.data?.detail || 'AI 分析失败'
-      stopPolling()
-      analyzing.value = false
-    } finally {
-      if (!analyzing.value) {
-        stopPolling()
+      const response = await fetch('/api/ai/analyze/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+        signal: abortController.signal,
+      })
+
+      if (!response.ok) {
+        throw new Error(await readResponseError(response))
       }
+
+      if (!response.body) {
+        throw new Error('浏览器不支持流式响应')
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder('utf-8')
+      let buffer = ''
+      const partial: Record<string, any> = {}
+
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        buffer = buffer.replace(/\r\n/g, '\n')
+
+        let boundary = buffer.indexOf('\n\n')
+        while (boundary !== -1) {
+          const rawEvent = buffer.slice(0, boundary).trim()
+          buffer = buffer.slice(boundary + 2)
+          if (rawEvent) {
+            handleAnalysisEvent(parseSSEEvent(rawEvent), partial)
+          }
+          boundary = buffer.indexOf('\n\n')
+        }
+      }
+
+      // 处理缓冲区残余
+      buffer += decoder.decode()
+      const tail = buffer.trim()
+      if (tail) {
+        handleAnalysisEvent(parseSSEEvent(tail), partial)
+      }
+
+      // 流结束但未收到 done 事件
+      if (analyzing.value && !analysisResult.value && !analysisError.value) {
+        analysisError.value = '分析流意外结束'
+      }
+    } catch (err: any) {
+      if (err?.name === 'AbortError') return
+      analysisError.value = err?.message || 'AI 分析失败'
+    } finally {
+      analyzing.value = false
+      abortController = null
+    }
+  }
+
+  const handleAnalysisEvent = (event: SSEEventMessage | null, partial: Record<string, any>) => {
+    if (!event) return
+
+    switch (event.event) {
+      case 'stage':
+        analysisStage.value = event.data?.stage || '处理中'
+        if (typeof event.data?.progress === 'number') {
+          analysisProgress.value = event.data.progress
+        }
+        break
+
+      case 'title':
+        streamingTitle.value = event.data?.video_title || ''
+        partial.video_title = event.data?.video_title
+        break
+
+      case 'transcript':
+        partial.transcript = event.data?.transcript || []
+        partial.transcript_language = event.data?.transcript_language
+        break
+
+      case 'summary_delta':
+        streamingOverview.value += event.data?.delta || ''
+        break
+
+      case 'summary':
+        partial.summary = event.data?.summary
+        break
+
+      case 'mindmap':
+        partial.mind_map = event.data?.mind_map
+        break
+
+      case 'done': {
+        const finalResult: VideoAnalysisResponse = {
+          analysis_id: event.data?.analysis_id || '',
+          video_title: partial.video_title || streamingTitle.value || '',
+          summary: partial.summary || {
+            overview: streamingOverview.value,
+            key_points: [],
+            sections: [],
+          },
+          transcript: partial.transcript || [],
+          mind_map: partial.mind_map || { id: 'root', label: '', children: [] },
+          transcript_language: partial.transcript_language,
+        }
+        analysisResult.value = finalResult
+        analyzing.value = false
+        break
+      }
+
+      case 'error':
+        analysisError.value = event.data?.message || 'AI 分析失败'
+        analyzing.value = false
+        break
     }
   }
 
@@ -249,13 +360,17 @@ export function useVideoAI() {
   }
 
   const resetAI = () => {
-    stopPolling()
+    if (abortController) {
+      abortController.abort()
+      abortController = null
+    }
     analyzing.value = false
     analysisError.value = null
     analysisResult.value = null
+    streamingOverview.value = ''
+    streamingTitle.value = ''
     analysisStage.value = '待开始'
     analysisProgress.value = 0
-    analysisTaskId.value = null
     asking.value = false
     question.value = ''
     chatHistory.value = []
@@ -300,51 +415,6 @@ export function useVideoAI() {
     }
   }
 
-  const pollAnalyzeStatus = async (taskId: string) => {
-    stopPolling()
-
-    await fetchAnalyzeStatus(taskId)
-    if (!analyzing.value) {
-      return
-    }
-
-    pollTimer.value = window.setInterval(async () => {
-      await fetchAnalyzeStatus(taskId)
-    }, 1200)
-  }
-
-  const fetchAnalyzeStatus = async (taskId: string) => {
-    try {
-      const response = await apiClient.get<AnalyzeTaskStatusResponse>(`/ai/analyze/status/${taskId}`)
-      const task = response.data
-      analysisStage.value = task.stage || '处理中'
-      analysisProgress.value = Number.isFinite(task.progress) ? task.progress : 0
-
-      if (task.status === 'completed') {
-        analysisResult.value = task.result || null
-        analyzing.value = false
-        stopPolling()
-      } else if (task.status === 'failed') {
-        analysisError.value = task.error || 'AI 分析失败'
-        analyzing.value = false
-        stopPolling()
-      } else {
-        analyzing.value = true
-      }
-    } catch (err: any) {
-      analysisError.value = err.response?.data?.detail || '获取分析状态失败'
-      analyzing.value = false
-      stopPolling()
-    }
-  }
-
-  const stopPolling = () => {
-    if (pollTimer.value !== null) {
-      window.clearInterval(pollTimer.value)
-      pollTimer.value = null
-    }
-  }
-
   const parseDownloadFilename = (contentDisposition: string | null): string | null => {
     if (!contentDisposition) {
       return null
@@ -369,7 +439,8 @@ export function useVideoAI() {
     analysisResult,
     analysisStage,
     analysisProgress,
-    analysisTaskId,
+    streamingOverview,
+    streamingTitle,
     asking,
     question,
     chatHistory,

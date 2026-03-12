@@ -331,6 +331,101 @@ class VideoAIService:
 
         yield {"event": "done", "data": {"citations": citations_payload}}
 
+    def stream_analysis(self, url: str) -> Iterator[Dict[str, Any]]:
+        """
+        SSE 流式分析：逐步推送进度、字幕、摘要流（overview 逐字）、思维导图。
+        前端通过 EventSource 消费，不再需要轮询。
+        """
+        try:
+            yield {"event": "stage", "data": {"stage": "解析视频信息", "progress": 5}}
+            info = self._extract_video_info(url)
+            title = info.get("title") or "未命名视频"
+            yield {"event": "title", "data": {"video_title": title}}
+
+            yield {"event": "stage", "data": {"stage": "检测字幕轨道", "progress": 15}}
+            subtitle_url, language = self._pick_subtitle_track(info)
+            transcript: List[TranscriptSegment] = []
+
+            if subtitle_url:
+                yield {"event": "stage", "data": {"stage": "下载字幕文本", "progress": 25}}
+                subtitle_content = self._download_subtitle(subtitle_url)
+                transcript = self._parse_subtitle(subtitle_content)
+                yield {"event": "stage", "data": {"stage": "字幕解析完成", "progress": 60}}
+            else:
+                local_video_path = self._find_local_video_file(info, url)
+                if local_video_path:
+                    yield {"event": "stage", "data": {"stage": "开始本地语音转写", "progress": 25}}
+                    duration_sec = float(info.get("duration") or 0)
+                    transcript = self._transcribe_local_video_with_whisper(
+                        local_video_path,
+                        duration_sec=duration_sec,
+                    )
+                    language = "zh-ASR"
+                    yield {"event": "stage", "data": {"stage": "转写完成", "progress": 65}}
+
+            if not transcript:
+                if self._has_only_danmaku(info):
+                    raise ValueError(
+                        "该视频仅检测到弹幕（danmaku），且未找到可转写的本地视频文件。请先下载到本地后再试 AI 分析。"
+                    )
+                raise ValueError(
+                    "未找到可用字幕，且无法从本地视频生成转写。请先完成下载后再试。"
+                )
+
+            transcript = self._normalize_transcript_script(transcript, language)
+            transcript = self._compact_transcript(transcript)
+
+            yield {"event": "transcript", "data": {
+                "transcript": [seg.model_dump() for seg in transcript],
+                "transcript_language": language,
+            }}
+
+            # --- 流式生成 overview ---
+            yield {"event": "stage", "data": {"stage": "AI 生成摘要", "progress": 70}}
+            overview_text = ""
+            if settings.AI_API_KEY:
+                for delta in self._generate_summary_overview_stream(title, transcript):
+                    overview_text += delta
+                    yield {"event": "summary_delta", "data": {"delta": delta}}
+
+            # --- 结构化摘要（key_points + sections）---
+            yield {"event": "stage", "data": {"stage": "生成结构化摘要", "progress": 88}}
+            summary = self._generate_summary_structured(title, transcript, overview_text)
+            if not summary:
+                summary = self._generate_summary_fallback(transcript)
+                if overview_text:
+                    summary.overview = overview_text
+
+            # 若 overview 未曾流式输出（无 AI Key / 流式失败），伪流式推送
+            if not overview_text and summary.overview:
+                for delta in self._chunk_text_for_stream(summary.overview, chunk_size=4):
+                    yield {"event": "summary_delta", "data": {"delta": delta}}
+
+            yield {"event": "summary", "data": {"summary": summary.model_dump()}}
+
+            # --- 思维导图 ---
+            yield {"event": "stage", "data": {"stage": "生成思维导图", "progress": 94}}
+            mind_map = self._build_mind_map(title, summary)
+            yield {"event": "mindmap", "data": {"mind_map": mind_map.model_dump()}}
+
+            # --- 缓存 & 完成 ---
+            analysis_id = str(uuid.uuid4())
+            record = AnalysisRecord(
+                analysis_id=analysis_id,
+                video_title=title,
+                transcript_language=language,
+                transcript=transcript,
+                summary=summary,
+                mind_map=mind_map,
+            )
+            self.analysis_cache[analysis_id] = record
+            yield {"event": "done", "data": {"analysis_id": analysis_id}}
+
+        except ValueError as exc:
+            yield {"event": "error", "data": {"message": str(exc)}}
+        except Exception as exc:
+            yield {"event": "error", "data": {"message": f"AI 分析失败: {exc}"}}
+
     def _prepare_chat_context(
         self, analysis_id: str, question: str
     ) -> Tuple[AnalysisRecord, List[TranscriptSegment], List[TranscriptSegment]]:
@@ -997,6 +1092,81 @@ class VideoAIService:
             overview = str(payload.get("overview", "")).strip()
             if not overview:
                 return None
+            return VideoSummary(overview=overview, key_points=key_points, sections=sections)
+        except Exception:
+            return None
+
+    def _generate_summary_overview_stream(
+        self, title: str, transcript: List[TranscriptSegment]
+    ) -> Iterator[str]:
+        """
+        流式生成视频总览摘要文本（纯文本，非 JSON），逐 token 返回。
+        """
+        if not settings.AI_API_KEY:
+            return
+
+        transcript_text = "\n".join(
+            f"[{segment.timestamp}] {segment.text}" for segment in transcript[:220]
+        )
+        system_prompt = (
+            "你是一名学习效率助手。请基于视频转录生成 2-4 句话的视频总览摘要，"
+            "概括视频的核心主题和主要内容。直接输出纯文本摘要，"
+            "不要输出 JSON、markdown 或其他格式标记。"
+        )
+        user_prompt = (
+            f"视频标题：{title}\n"
+            "请输出该视频的总览摘要（2-4 句话）：\n"
+            f"转录内容：\n{transcript_text}"
+        )
+        for delta in self._call_ai_model_stream(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            temperature=0.2,
+        ):
+            yield delta
+
+    def _generate_summary_structured(
+        self, title: str, transcript: List[TranscriptSegment], overview: str
+    ) -> Optional[VideoSummary]:
+        """
+        非流式：基于已有 overview 生成结构化 key_points + sections。
+        """
+        if not settings.AI_API_KEY:
+            return None
+
+        transcript_text = "\n".join(
+            f"[{segment.timestamp}] {segment.text}" for segment in transcript[:220]
+        )
+        system_prompt = (
+            "你是一名学习效率助手。请基于视频转录和已有的总览，生成结构化 JSON，"
+            "必须包含 key_points(字符串数组，3-6 个核心要点) 和 sections(数组，每项包含 title/start/summary)。"
+            "确保输出是合法 JSON，不能包含 markdown。"
+        )
+        user_prompt = (
+            f"视频标题：{title}\n"
+            f"视频总览：{overview}\n"
+            "请基于以上总览，输出 key_points 和 sections。\n"
+            f"转录内容：\n{transcript_text}"
+        )
+        response_json = self._call_ai_model(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            temperature=0.2,
+        )
+        if not response_json:
+            return None
+
+        try:
+            payload = json.loads(response_json)
+            sections = [
+                SummarySection(
+                    title=item.get("title", "章节"),
+                    start=item.get("start", "00:00:00"),
+                    summary=item.get("summary", ""),
+                )
+                for item in payload.get("sections", [])[:8]
+            ]
+            key_points = [str(point) for point in payload.get("key_points", [])[:8]]
             return VideoSummary(overview=overview, key_points=key_points, sections=sections)
         except Exception:
             return None

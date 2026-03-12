@@ -11,9 +11,12 @@ interface Format {
   filesize_mb?: number
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   formats: Format[]
-}>()
+  compact?: boolean
+}>(), {
+  compact: false,
+})
 
 const emit = defineEmits<{
   download: [options: { format: string; quality: string }]
@@ -65,16 +68,6 @@ const handleDownload = () => {
   })
 }
 
-// 格式化标签
-const getFormatBadge = (ext: string) => {
-  const badges: Record<string, { text: string; color: string }> = {
-    'mp4': { text: '推荐', color: 'bg-green-100 text-green-700' },
-    'webm': { text: '高清', color: 'bg-blue-100 text-blue-700' },
-    'mkv': { text: '高清', color: 'bg-blue-100 text-blue-700' }
-  }
-  return badges[ext] || null
-}
-
 // 获取推荐标签
 const isRecommended = (format: Format) => {
   return recommendedFormat.value?.format_id === format.format_id
@@ -82,31 +75,32 @@ const isRecommended = (format: Format) => {
 </script>
 
 <template>
-  <div class="bg-white border border-gray-200 rounded-xl p-6 mb-6">
-    <h3 class="text-base font-semibold text-gray-900 mb-2">选择下载格式</h3>
-    <p class="text-sm text-gray-500 mb-5">选择最适合您需求的格式和质量</p>
+  <div :class="compact ? 'bg-white border border-gray-200 rounded-xl p-4' : 'bg-white border border-gray-200 rounded-xl p-6 mb-6'">
+    <h3 :class="compact ? 'text-sm font-semibold text-gray-900 mb-1' : 'text-base font-semibold text-gray-900 mb-2'">选择下载格式</h3>
+    <p :class="compact ? 'text-xs text-gray-500 mb-3' : 'text-sm text-gray-500 mb-5'">选择最适合您需求的格式和质量</p>
 
     <!-- 格式列表 -->
-    <div class="space-y-3 mb-6">
+    <div :class="compact ? 'space-y-2 mb-3 max-h-[240px] overflow-y-auto pr-1' : 'space-y-3 mb-6'">
       <div
         v-for="format in formats"
         :key="format.format_id"
         @click="selectedFormatId = format.format_id"
         :class="[
-          'p-4 rounded-lg border-2 cursor-pointer transition-all',
+          'rounded-lg border-2 cursor-pointer transition-all',
+          compact ? 'px-3 py-2.5' : 'p-4',
           selectedFormatId === format.format_id
             ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-500/20'
             : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
         ]"
       >
-        <div class="flex items-start justify-between gap-4">
+        <div class="flex items-center justify-between gap-3">
           <!-- 左侧：主要信息 -->
-          <div class="flex-1">
-            <div class="flex items-center gap-3 mb-2">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
               <!-- 推荐标签 -->
               <span
                 v-if="isRecommended(format)"
-                class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700"
+                class="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700"
               >
                 <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.738 1.948-2.93a2 2 0 002.026-1.977l-2.8-2.034a1 1 0 00-.95-.69h-3.462c-.969 0-1.371-1.24-.588-1.81l2.8-2.034a1 1 0 00.364-1.118L9.05 2.927z" />
@@ -114,41 +108,17 @@ const isRecommended = (format: Format) => {
                 推荐
               </span>
 
-              <!-- 格式徽章 -->
-              <span
-                v-if="getFormatBadge(format.ext)"
-                :class="['shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium', getFormatBadge(format.ext)?.color]"
-              >
-                {{ getFormatBadge(format.ext)?.text }}
-              </span>
-
               <!-- 格式名称和质量 -->
-              <span class="text-base font-semibold text-gray-900">
-                {{ format.ext.toUpperCase() }} - {{ format.quality }}
+              <span :class="compact ? 'text-sm font-semibold text-gray-900' : 'text-base font-semibold text-gray-900'">
+                {{ format.ext.toUpperCase() }} · {{ format.quality }}
               </span>
             </div>
 
             <!-- 详细信息 -->
-            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500">
-              <span class="flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                </svg>
-                {{ format.resolution }}
-              </span>
-              <span class="flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                </svg>
-                {{ format.fps_display || '未知 FPS' }}
-              </span>
-              <span class="flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                </svg>
-                {{ format.filesize_display || '未知大小' }}
-              </span>
+            <div :class="['flex flex-wrap items-center gap-x-3 gap-y-0.5 text-gray-500', compact ? 'text-xs mt-1' : 'text-sm mt-2']">
+              <span>{{ format.resolution }}</span>
+              <span>{{ format.fps_display || '未知 FPS' }}</span>
+              <span class="font-medium text-gray-700">{{ format.filesize_display || '未知大小' }}</span>
             </div>
           </div>
 
@@ -156,7 +126,7 @@ const isRecommended = (format: Format) => {
           <div class="shrink-0">
             <div
               :class="[
-                'w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all',
+                'w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all',
                 selectedFormatId === format.format_id
                   ? 'border-blue-500 bg-blue-500'
                   : 'border-gray-300'
@@ -164,7 +134,7 @@ const isRecommended = (format: Format) => {
             >
               <svg
                 v-if="selectedFormatId === format.format_id"
-                class="w-3 h-3 text-white"
+                class="w-2.5 h-2.5 text-white"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -177,29 +147,16 @@ const isRecommended = (format: Format) => {
       </div>
     </div>
 
-    <!-- 当前选择摘要 -->
-    <div v-if="selectedFormat" class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-      <div class="flex items-center justify-between">
-        <div class="text-sm">
-          <span class="font-medium text-blue-900">已选择：</span>
-          <span class="text-blue-700 ml-2">
-            {{ selectedFormat.ext.toUpperCase() }} - {{ selectedFormat.quality }}
-            ({{ selectedFormat.resolution || '未知分辨率' }}, {{ selectedFormat.fps_display || '未知 FPS' }})
-          </span>
-        </div>
-        <div class="text-sm font-semibold text-blue-700">
-          {{ selectedFormat.filesize_display || '未知大小' }}
-        </div>
-      </div>
-    </div>
-
     <!-- 下载按钮 -->
     <button
       @click="handleDownload"
       :disabled="!selectedFormat"
-      class="w-full py-3.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+      :class="[
+        'w-full bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2',
+        compact ? 'py-2.5 text-sm' : 'py-3.5'
+      ]"
     >
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg :class="compact ? 'w-4 h-4' : 'w-5 h-5'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
       </svg>
       开始下载

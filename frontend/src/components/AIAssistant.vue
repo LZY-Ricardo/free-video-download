@@ -12,9 +12,12 @@ interface MindMapExporter {
   downloadSvg: (filenameBase?: string) => void
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   url: string
-}>()
+  analyzeTrigger?: number
+}>(), {
+  analyzeTrigger: 0,
+})
 
 const {
   analyzing,
@@ -22,6 +25,8 @@ const {
   analysisResult,
   analysisStage,
   analysisProgress,
+  streamingOverview,
+  streamingTitle,
   asking,
   question,
   chatHistory,
@@ -52,15 +57,31 @@ const transcriptDownloadOptions: { key: TranscriptFormat; label: string }[] = [
   { key: 'txt', label: '下载 TXT' },
 ]
 
-const tabContentClass = computed(() =>
-  activeTab.value === 'mindmap'
-    ? 'p-0 h-[560px] overflow-hidden bg-slate-50'
-    : 'p-4 h-[460px] overflow-y-auto bg-white',
-)
+// 分析中或已有结果时都展示 Tab 结构
+const showTabs = computed(() => analyzing.value || !!analysisResult.value)
+
+const tabContentClass = computed(() => {
+  if (activeTab.value === 'mindmap') {
+    return 'p-0 flex-1 min-h-0 overflow-hidden bg-slate-50'
+  }
+  return 'p-4 flex-1 min-h-0 overflow-y-auto bg-white'
+})
 
 const onAnalyze = () => {
   analyzeVideo(props.url)
 }
+
+// 监听外部触发信号：自动开始分析
+// immediate: true 确保组件首次挂载时若 trigger 已 > 0 也能自动触发
+watch(
+  () => props.analyzeTrigger,
+  (newVal) => {
+    if (newVal > 0 && props.url && !analyzing.value) {
+      onAnalyze()
+    }
+  },
+  { immediate: true },
+)
 
 const onAsk = () => {
   askQuestion()
@@ -170,62 +191,161 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="bg-white border border-gray-200 rounded-xl p-5 mb-6">
-    <div class="flex items-center justify-between gap-3 mb-4">
-      <div class="min-w-0">
-        <h3 class="text-lg font-semibold text-gray-900 truncate">AI 学习助手</h3>
-        <p class="text-sm text-gray-500 mt-1">
-          总结、字幕、脑图、问答一体化（支持本地离线转写）
-        </p>
+  <div class="bg-white border border-gray-200 rounded-xl p-4 h-full flex flex-col max-h-[calc(100vh-12rem)] overflow-hidden">
+    <div class="flex items-center justify-between gap-3 mb-3">
+      <div class="flex items-center gap-2 min-w-0">
+        <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0">
+          <svg class="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <h3 class="text-base font-semibold text-gray-900 truncate">AI 学习助手</h3>
+          <p class="text-xs text-gray-400">总结 · 字幕 · 脑图 · 问答</p>
+        </div>
       </div>
       <button
         @click="onAnalyze"
         :disabled="!url || analyzing"
-        class="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shrink-0"
+        class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors shrink-0"
+        :class="analyzing
+          ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
+          : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'"
       >
-        {{ analyzing ? '分析中...' : 'AI 分析视频' }}
+        {{ analyzing ? '分析中...' : analysisResult ? '重新分析' : 'AI 分析视频' }}
       </button>
     </div>
 
-    <div v-if="analysisError" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+    <div v-if="analysisError" class="mb-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
       {{ analysisError }}
     </div>
 
-    <div v-if="analyzing" class="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
-      <div class="flex items-center justify-between text-xs text-blue-700 mb-2">
-        <span>{{ analysisStage }}</span>
-        <span>{{ analysisProgress.toFixed(0) }}%</span>
+    <div v-if="showTabs" class="rounded-xl border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0">
+      <!-- 分析中：顶部细进度条 -->
+      <div v-if="analyzing" class="h-1 bg-blue-100 overflow-hidden shrink-0">
+        <div class="h-full bg-blue-500 transition-all duration-500 ease-out" :style="{ width: `${analysisProgress}%` }"></div>
       </div>
-      <div class="h-2 rounded-full bg-blue-100 overflow-hidden">
-        <div
-          class="h-full bg-blue-500 transition-all duration-300"
-          :style="{ width: `${analysisProgress}%` }"
-        ></div>
-      </div>
-    </div>
 
-    <div v-if="analysisResult" class="rounded-xl border border-gray-200 overflow-hidden">
-      <div class="bg-gray-50 border-b border-gray-200 px-3 pt-2">
+      <!-- Tab 导航 -->
+      <div class="bg-gray-50 border-b border-gray-200 px-3 pt-2 shrink-0">
         <div class="flex items-center gap-1 overflow-x-auto">
           <button
             v-for="tab in tabItems"
             :key="tab.key"
             @click="activeTab = tab.key"
+            :disabled="analyzing && tab.key !== 'summary'"
             :class="[
               'px-3 py-2 text-sm border-b-2 whitespace-nowrap transition-colors',
               activeTab === tab.key
                 ? 'text-blue-600 border-blue-600 font-medium'
                 : 'text-gray-500 border-transparent hover:text-gray-700',
+              analyzing && tab.key !== 'summary' ? 'opacity-40 cursor-not-allowed' : '',
             ]"
           >
             {{ tab.label }}
           </button>
+          <!-- 分析中状态提示 -->
+          <span v-if="analyzing" class="ml-auto text-xs text-blue-500 flex items-center gap-1.5 shrink-0 pr-1">
+            <svg class="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+            </svg>
+            {{ analysisStage }}
+          </span>
         </div>
       </div>
 
+      <!-- Tab 内容区 -->
       <div :class="tabContentClass">
         <template v-if="activeTab === 'summary'">
-          <div class="space-y-4">
+          <!-- === 分析中，尚无流式内容：骨架屏 === -->
+          <div v-if="analyzing && !streamingOverview" class="space-y-4 animate-pulse">
+            <!-- 视频标题骨架 -->
+            <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <div class="h-3 w-16 bg-gray-200 rounded mb-2"></div>
+              <div class="h-4 w-3/4 bg-gray-200 rounded mb-2"></div>
+              <div class="h-3 w-1/3 bg-gray-200 rounded"></div>
+            </div>
+            <!-- 总览骨架 -->
+            <div class="rounded-lg border border-blue-200 bg-blue-50/60 p-3">
+              <div class="h-4 w-12 bg-blue-200 rounded mb-3"></div>
+              <div class="space-y-2">
+                <div class="h-3 w-full bg-blue-200/60 rounded"></div>
+                <div class="h-3 w-5/6 bg-blue-200/60 rounded"></div>
+                <div class="h-3 w-4/6 bg-blue-200/60 rounded"></div>
+              </div>
+            </div>
+            <!-- 核心要点骨架 -->
+            <div class="rounded-lg border border-gray-200 p-3">
+              <div class="h-4 w-20 bg-gray-200 rounded mb-3"></div>
+              <div class="space-y-2">
+                <div class="h-3 w-full bg-gray-100 rounded"></div>
+                <div class="h-3 w-5/6 bg-gray-100 rounded"></div>
+                <div class="h-3 w-4/6 bg-gray-100 rounded"></div>
+              </div>
+            </div>
+            <!-- 章节结构骨架 -->
+            <div class="rounded-lg border border-gray-200 p-3">
+              <div class="h-4 w-20 bg-gray-200 rounded mb-3"></div>
+              <div class="space-y-2">
+                <div class="rounded-md border border-gray-100 bg-gray-50 p-2.5">
+                  <div class="h-3 w-20 bg-gray-200 rounded mb-1.5"></div>
+                  <div class="h-3.5 w-2/3 bg-gray-200 rounded mb-1.5"></div>
+                  <div class="h-3 w-full bg-gray-100 rounded"></div>
+                </div>
+                <div class="rounded-md border border-gray-100 bg-gray-50 p-2.5">
+                  <div class="h-3 w-20 bg-gray-200 rounded mb-1.5"></div>
+                  <div class="h-3.5 w-1/2 bg-gray-200 rounded mb-1.5"></div>
+                  <div class="h-3 w-5/6 bg-gray-100 rounded"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- === 分析中，流式摘要输出中 === -->
+          <div v-else-if="analyzing && streamingOverview" class="space-y-4">
+            <!-- 视频标题 -->
+            <div v-if="streamingTitle" class="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <p class="text-xs text-gray-500 mb-1">视频标题</p>
+              <p class="text-sm text-gray-900 font-medium">{{ streamingTitle }}</p>
+            </div>
+            <div v-else class="rounded-lg border border-gray-200 bg-gray-50 p-3 animate-pulse">
+              <div class="h-3 w-16 bg-gray-200 rounded mb-2"></div>
+              <div class="h-4 w-3/4 bg-gray-200 rounded"></div>
+            </div>
+
+            <!-- 流式总览：逐字输出 + 光标闪烁 -->
+            <div class="rounded-lg border border-blue-200 bg-blue-50 p-3">
+              <p class="text-sm font-semibold text-blue-900 mb-2">总览</p>
+              <p class="text-sm text-blue-800 leading-6">
+                {{ streamingOverview }}<span class="inline-block w-0.5 h-4 bg-blue-600 animate-pulse ml-0.5 align-text-bottom"></span>
+              </p>
+            </div>
+
+            <!-- 核心要点骨架 -->
+            <div class="rounded-lg border border-gray-200 p-3 animate-pulse">
+              <div class="h-4 w-20 bg-gray-200 rounded mb-3"></div>
+              <div class="space-y-2">
+                <div class="h-3 w-full bg-gray-100 rounded"></div>
+                <div class="h-3 w-5/6 bg-gray-100 rounded"></div>
+                <div class="h-3 w-4/6 bg-gray-100 rounded"></div>
+              </div>
+            </div>
+
+            <!-- 章节结构骨架 -->
+            <div class="rounded-lg border border-gray-200 p-3 animate-pulse">
+              <div class="h-4 w-20 bg-gray-200 rounded mb-3"></div>
+              <div class="space-y-2">
+                <div class="rounded-md border border-gray-100 bg-gray-50 p-2.5">
+                  <div class="h-3 w-20 bg-gray-200 rounded mb-1.5"></div>
+                  <div class="h-3.5 w-2/3 bg-gray-200 rounded"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- === 分析完成：真实内容 === -->
+          <div v-else-if="analysisResult" class="space-y-4">
             <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
               <p class="text-xs text-gray-500 mb-1">视频标题</p>
               <p class="text-sm text-gray-900 font-medium">{{ analysisResult.video_title }}</p>
@@ -266,7 +386,7 @@ onBeforeUnmount(() => {
         </template>
 
         <template v-else-if="activeTab === 'transcript'">
-          <div class="h-full flex flex-col">
+          <div v-if="analysisResult" class="h-full flex flex-col">
             <div class="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3 mb-3">
               <div>
                 <p class="text-sm font-medium text-gray-800">字幕片段：{{ transcriptCount }}</p>
@@ -303,10 +423,11 @@ onBeforeUnmount(() => {
               <div v-else class="text-sm text-gray-500 py-8 text-center">暂无字幕内容</div>
             </div>
           </div>
+          <div v-else class="flex items-center justify-center h-full text-sm text-gray-400">分析完成后展示字幕</div>
         </template>
 
         <template v-else-if="activeTab === 'mindmap'">
-          <div class="h-full flex flex-col">
+          <div v-if="analysisResult" class="h-full flex flex-col">
             <div class="flex items-center justify-between gap-3 px-4 py-3 bg-white border-b border-slate-200">
               <div>
                 <p class="text-sm font-medium text-slate-800">思维导图浏览与导出</p>
@@ -339,6 +460,7 @@ onBeforeUnmount(() => {
               <MindMapTree ref="mindMapRef" :node="analysisResult.mind_map" />
             </div>
           </div>
+          <div v-else class="flex items-center justify-center h-full text-sm text-gray-400">分析完成后展示思维导图</div>
         </template>
 
         <template v-else>

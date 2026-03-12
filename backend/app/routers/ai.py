@@ -47,6 +47,30 @@ async def get_analyze_status(task_id: str):
     return task
 
 
+@router.post("/analyze/stream")
+async def analyze_video_stream(request: AnalyzeRequest):
+    """
+    SSE 流式分析：逐步推送进度、字幕、摘要流（overview 逐字）、思维导图
+    """
+
+    def event_generator():
+        try:
+            for item in video_ai_service.stream_analysis(request.url):
+                yield _format_sse_event(item["event"], item["data"])
+        except Exception as exc:
+            yield _format_sse_event("error", {"message": f"AI 分析失败: {exc}"})
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
 @router.post("/analyze", response_model=VideoAnalysisResponse)
 async def analyze_video(request: AnalyzeRequest):
     """
