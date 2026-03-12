@@ -29,6 +29,8 @@ export function useVideoAI() {
   // 流式分析：逐字输出的 overview 文本 & 视频标题
   const streamingOverview = ref('')
   const streamingTitle = ref('')
+  const streamingKeyPoints = ref<string[]>([])
+  const streamingSections = ref<{ title: string; start: string; summary: string }[]>([])
 
   const asking = ref(false)
   const question = ref('')
@@ -54,6 +56,8 @@ export function useVideoAI() {
     analysisResult.value = null
     streamingOverview.value = ''
     streamingTitle.value = ''
+    streamingKeyPoints.value = []
+    streamingSections.value = []
     chatHistory.value = []
     analysisStage.value = '连接中'
     analysisProgress.value = 0
@@ -144,6 +148,24 @@ export function useVideoAI() {
         streamingOverview.value += event.data?.delta || ''
         break
 
+      case 'summary_keypoint':
+        if (event.data?.keypoint) {
+          streamingKeyPoints.value = [...streamingKeyPoints.value, event.data.keypoint]
+        }
+        break
+
+      case 'summary_section': {
+        const sec = event.data?.section
+        if (sec) {
+          streamingSections.value = [...streamingSections.value, {
+            title: sec.title || '',
+            start: sec.start || '',
+            summary: sec.summary || '',
+          }]
+        }
+        break
+      }
+
       case 'summary':
         partial.summary = event.data?.summary
         break
@@ -158,8 +180,8 @@ export function useVideoAI() {
           video_title: partial.video_title || streamingTitle.value || '',
           summary: partial.summary || {
             overview: streamingOverview.value,
-            key_points: [],
-            sections: [],
+            key_points: streamingKeyPoints.value,
+            sections: streamingSections.value,
           },
           transcript: partial.transcript || [],
           mind_map: partial.mind_map || { id: 'root', label: '', children: [] },
@@ -369,6 +391,8 @@ export function useVideoAI() {
     analysisResult.value = null
     streamingOverview.value = ''
     streamingTitle.value = ''
+    streamingKeyPoints.value = []
+    streamingSections.value = []
     analysisStage.value = '待开始'
     analysisProgress.value = 0
     asking.value = false
@@ -441,6 +465,8 @@ export function useVideoAI() {
     analysisProgress,
     streamingOverview,
     streamingTitle,
+    streamingKeyPoints,
+    streamingSections,
     asking,
     question,
     chatHistory,

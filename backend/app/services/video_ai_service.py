@@ -388,19 +388,48 @@ class VideoAIService:
                     overview_text += delta
                     yield {"event": "summary_delta", "data": {"delta": delta}}
 
-            # --- 结构化摘要（key_points + sections）---
-            yield {"event": "stage", "data": {"stage": "生成结构化摘要", "progress": 88}}
-            summary = self._generate_summary_structured(title, transcript, overview_text)
-            if not summary:
-                summary = self._generate_summary_fallback(transcript)
-                if overview_text:
-                    summary.overview = overview_text
+            # --- 流式生成 key_points（逐条推送） ---
+            yield {"event": "stage", "data": {"stage": "提取核心要点", "progress": 80}}
+            key_points: List[str] = []
+            if settings.AI_API_KEY and overview_text:
+                for point in self._generate_key_points_stream(title, transcript, overview_text):
+                    key_points.append(point)
+                    yield {"event": "summary_keypoint", "data": {"keypoint": point}}
 
-            # 若 overview 未曾流式输出（无 AI Key / 流式失败），伪流式推送
-            if not overview_text and summary.overview:
-                for delta in self._chunk_text_for_stream(summary.overview, chunk_size=4):
-                    yield {"event": "summary_delta", "data": {"delta": delta}}
+            # --- 流式生成 sections（逐条推送） ---
+            yield {"event": "stage", "data": {"stage": "生成章节结构", "progress": 88}}
+            sections_list: List[SummarySection] = []
+            if settings.AI_API_KEY and overview_text:
+                for section_dict in self._generate_sections_stream(title, transcript, overview_text):
+                    section = SummarySection(
+                        title=section_dict.get("title", "章节"),
+                        start=section_dict.get("start", "00:00:00"),
+                        summary=section_dict.get("summary", ""),
+                    )
+                    sections_list.append(section)
+                    yield {"event": "summary_section", "data": {"section": section.model_dump()}}
 
+            # Fallback：AI 未能生成时使用本地规则兜底
+            if not key_points or not sections_list:
+                fallback = self._generate_summary_fallback(transcript)
+                if not key_points:
+                    key_points = fallback.key_points
+                    for pt in key_points:
+                        yield {"event": "summary_keypoint", "data": {"keypoint": pt}}
+                if not sections_list:
+                    sections_list = fallback.sections
+                    for sec in sections_list:
+                        yield {"event": "summary_section", "data": {"section": sec.model_dump()}}
+                if not overview_text:
+                    overview_text = fallback.overview
+                    for delta in self._chunk_text_for_stream(overview_text, chunk_size=4):
+                        yield {"event": "summary_delta", "data": {"delta": delta}}
+
+            summary = VideoSummary(
+                overview=overview_text or "该视频主要围绕核心主题进行讲解。",
+                key_points=key_points,
+                sections=sections_list,
+            )
             yield {"event": "summary", "data": {"summary": summary.model_dump()}}
 
             # --- 思维导图 ---
@@ -1124,6 +1153,117 @@ class VideoAIService:
             temperature=0.2,
         ):
             yield delta
+
+    def _generate_key_points_stream(
+        self, title: str, transcript: List[TranscriptSegment], overview: str
+    ) -> Iterator[str]:
+        """
+        流式生成核心要点，每完成一条就 yield 一条纯文本。
+        """
+        if not settings.AI_API_KEY:
+            return
+
+        transcript_text = "\n".join(
+            f"[{segment.timestamp}] {segment.text}" for segment in transcript[:220]
+        )
+        system_prompt = (
+            "你是一名学习效率助手。请基于视频转录和总览提取 3-6 个核心要点。"
+            "每个要点独占一行，直接输出文本，不要编号、不要标记符号、不要空行。"
+        )
+        user_prompt = (
+            f"视频标题：{title}\n"
+            f"视频总览：{overview}\n"
+            "请输出核心要点（每行一条）：\n"
+            f"转录内容：\n{transcript_text}"
+        )
+
+        buffer = ""
+        for delta in self._call_ai_model_stream(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            temperature=0.2,
+        ):
+            buffer += delta
+            while "\n" in buffer:
+                line, buffer = buffer.split("\n", 1)
+                line = line.strip()
+                # 去掉常见编号前缀
+                line = re.sub(r"^[\d]+[.、)]\s*", "", line)
+                line = re.sub(r"^[-•*]\s*", "", line)
+                line = line.strip()
+                if line:
+                    yield line
+        if buffer.strip():
+            cleaned = re.sub(r"^[\d]+[.、)]\s*", "", buffer.strip())
+            cleaned = re.sub(r"^[-•*]\s*", "", cleaned).strip()
+            if cleaned:
+                yield cleaned
+
+    def _generate_sections_stream(
+        self, title: str, transcript: List[TranscriptSegment], overview: str
+    ) -> Iterator[Dict[str, str]]:
+        """
+        流式生成章节结构，每完成一个 section 就 yield 一个 dict。
+        要求 AI 输出 JSONL（每行一个独立 JSON 对象）。
+        """
+        if not settings.AI_API_KEY:
+            return
+
+        transcript_text = "\n".join(
+            f"[{segment.timestamp}] {segment.text}" for segment in transcript[:220]
+        )
+        system_prompt = (
+            "你是一名学习效率助手。请基于视频转录和总览将视频划分为 3-6 个章节。"
+            '每个章节输出为独立一行 JSON，格式：{"title":"章节标题","start":"HH:MM:SS","summary":"一句话摘要"}\n'
+            "每行一个 JSON 对象，不要输出数组括号，不要输出 markdown 代码块。"
+        )
+        user_prompt = (
+            f"视频标题：{title}\n"
+            f"视频总览：{overview}\n"
+            "请输出章节（每行一个 JSON 对象）：\n"
+            f"转录内容：\n{transcript_text}"
+        )
+
+        buffer = ""
+        for delta in self._call_ai_model_stream(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            temperature=0.2,
+        ):
+            buffer += delta
+            while "\n" in buffer:
+                line, buffer = buffer.split("\n", 1)
+                line = line.strip()
+                if not line:
+                    continue
+                parsed = self._try_parse_section_line(line)
+                if parsed:
+                    yield parsed
+        if buffer.strip():
+            parsed = self._try_parse_section_line(buffer.strip())
+            if parsed:
+                yield parsed
+
+    def _try_parse_section_line(self, line: str) -> Optional[Dict[str, str]]:
+        """尝试从一行文本解析出 section JSON 对象。"""
+        clean = line.strip().lstrip("`").rstrip("`").strip()
+        if not clean:
+            return None
+        start = clean.find("{")
+        end = clean.rfind("}")
+        if start == -1 or end == -1 or end <= start:
+            return None
+        try:
+            obj = json.loads(clean[start : end + 1])
+            if "title" in obj:
+                return {
+                    "title": str(obj.get("title", "章节")),
+                    "start": str(obj.get("start", "00:00:00")),
+                    "summary": str(obj.get("summary", "")),
+                }
+        except json.JSONDecodeError:
+            pass
+        return None
 
     def _generate_summary_structured(
         self, title: str, transcript: List[TranscriptSegment], overview: str

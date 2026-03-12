@@ -27,6 +27,8 @@ const {
   analysisProgress,
   streamingOverview,
   streamingTitle,
+  streamingKeyPoints,
+  streamingSections,
   asking,
   question,
   chatHistory,
@@ -191,7 +193,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="bg-white border border-gray-200 rounded-xl p-4 h-full flex flex-col max-h-[calc(100vh-6rem)] overflow-hidden">
+  <div class="bg-white border border-gray-200 rounded-xl p-4 h-full flex flex-col overflow-hidden">
     <div class="flex items-center justify-between gap-3 mb-3">
       <div class="flex items-center gap-2 min-w-0">
         <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0">
@@ -318,27 +320,60 @@ onBeforeUnmount(() => {
             <div class="rounded-lg border border-blue-200 bg-blue-50 p-3">
               <p class="text-sm font-semibold text-blue-900 mb-2">总览</p>
               <p class="text-sm text-blue-800 leading-6">
-                {{ streamingOverview }}<span class="inline-block w-0.5 h-4 bg-blue-600 animate-pulse ml-0.5 align-text-bottom"></span>
+                {{ streamingOverview }}<span v-if="!streamingKeyPoints.length" class="inline-block w-0.5 h-4 bg-blue-600 animate-pulse ml-0.5 align-text-bottom"></span>
               </p>
             </div>
 
-            <!-- 核心要点骨架 -->
-            <div class="rounded-lg border border-gray-200 p-3 animate-pulse">
-              <div class="h-4 w-20 bg-gray-200 rounded mb-3"></div>
-              <div class="space-y-2">
+            <!-- 核心要点：逐条流式展示 -->
+            <div class="rounded-lg border border-gray-200 p-3">
+              <p class="text-sm font-semibold text-gray-900 mb-2">核心要点</p>
+              <template v-if="streamingKeyPoints.length">
+                <ul class="list-disc list-inside text-sm text-gray-700 space-y-1">
+                  <li v-for="(item, idx) in streamingKeyPoints" :key="`skp-${idx}`">{{ item }}</li>
+                </ul>
+                <div v-if="!streamingSections.length" class="animate-pulse mt-2">
+                  <div class="h-3 w-3/5 bg-gray-100 rounded"></div>
+                </div>
+              </template>
+              <div v-else class="space-y-2 animate-pulse">
                 <div class="h-3 w-full bg-gray-100 rounded"></div>
                 <div class="h-3 w-5/6 bg-gray-100 rounded"></div>
                 <div class="h-3 w-4/6 bg-gray-100 rounded"></div>
               </div>
             </div>
 
-            <!-- 章节结构骨架 -->
-            <div class="rounded-lg border border-gray-200 p-3 animate-pulse">
-              <div class="h-4 w-20 bg-gray-200 rounded mb-3"></div>
-              <div class="space-y-2">
+            <!-- 章节结构：逐条流式展示 -->
+            <div class="rounded-lg border border-gray-200 p-3">
+              <p class="text-sm font-semibold text-gray-900 mb-2">章节结构</p>
+              <template v-if="streamingSections.length">
+                <div class="space-y-2">
+                  <div
+                    v-for="(section, idx) in streamingSections"
+                    :key="`ssec-${idx}`"
+                    class="rounded-md border border-gray-100 bg-gray-50 p-2.5"
+                  >
+                    <p class="text-xs text-blue-600 font-medium">{{ section.start }}</p>
+                    <p class="text-sm text-gray-900 font-medium mt-0.5">{{ section.title }}</p>
+                    <p class="text-sm text-gray-600 mt-1">{{ section.summary }}</p>
+                  </div>
+                </div>
+                <div v-if="analyzing" class="animate-pulse mt-2">
+                  <div class="rounded-md border border-gray-100 bg-gray-50 p-2.5">
+                    <div class="h-3 w-20 bg-gray-200 rounded mb-1.5"></div>
+                    <div class="h-3.5 w-2/3 bg-gray-200 rounded"></div>
+                  </div>
+                </div>
+              </template>
+              <div v-else class="space-y-2 animate-pulse">
                 <div class="rounded-md border border-gray-100 bg-gray-50 p-2.5">
                   <div class="h-3 w-20 bg-gray-200 rounded mb-1.5"></div>
-                  <div class="h-3.5 w-2/3 bg-gray-200 rounded"></div>
+                  <div class="h-3.5 w-2/3 bg-gray-200 rounded mb-1.5"></div>
+                  <div class="h-3 w-full bg-gray-100 rounded"></div>
+                </div>
+                <div class="rounded-md border border-gray-100 bg-gray-50 p-2.5">
+                  <div class="h-3 w-20 bg-gray-200 rounded mb-1.5"></div>
+                  <div class="h-3.5 w-1/2 bg-gray-200 rounded mb-1.5"></div>
+                  <div class="h-3 w-5/6 bg-gray-100 rounded"></div>
                 </div>
               </div>
             </div>
