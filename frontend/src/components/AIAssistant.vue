@@ -191,7 +191,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="bg-white border border-gray-200 rounded-xl p-4 h-full flex flex-col max-h-[calc(100vh-12rem)] overflow-hidden">
+  <div class="bg-white border border-gray-200 rounded-xl p-4 h-full flex flex-col max-h-[calc(100vh-6rem)] overflow-hidden">
     <div class="flex items-center justify-between gap-3 mb-3">
       <div class="flex items-center gap-2 min-w-0">
         <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0">
