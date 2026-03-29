@@ -227,6 +227,7 @@ const zhFeatureLinks = [
   { path: '/zh/features/audio-extractor', label: '音频提取' },
   { path: '/zh/features/subtitle-downloader', label: '字幕下载' },
   { path: '/zh/features/ai-video-summarizer', label: 'AI 视频总结' },
+  { path: '/zh/answers/', label: '答案中心' },
 ]
 
 const enFeatureLinks = [
@@ -234,6 +235,7 @@ const enFeatureLinks = [
   { path: '/en/features/audio-extractor', label: 'Audio Extractor' },
   { path: '/en/features/subtitle-downloader', label: 'Subtitle Downloader' },
   { path: '/en/features/ai-video-summarizer', label: 'AI Video Summarizer' },
+  { path: '/en/answers/', label: 'Answers Hub' },
 ]
 
 const zhPlatformLinks = [

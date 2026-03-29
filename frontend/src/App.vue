@@ -64,13 +64,15 @@ import DownloadForm from './components/DownloadForm.vue'
             </p>
           </section>
           <section class="rounded-2xl border border-gray-100 bg-gray-50 p-5">
-            <h2 class="text-base font-semibold text-gray-900 mb-2">探索双语 SEO 页面</h2>
+            <h2 class="text-base font-semibold text-gray-900 mb-2">探索双语 SEO 与 GEO 页面</h2>
             <p class="text-sm leading-6 text-gray-600">
-              你也可以从平台页、功能页和 FAQ 页面快速进入对应场景，查看更多关于 VidGrab 的能力说明。
+              你也可以从平台页、功能页、答案中心和 FAQ 页面快速进入对应场景，查看更多关于 VidGrab 的能力说明。
             </p>
             <div class="mt-3 flex flex-wrap gap-3 text-sm">
               <a href="/zh/" class="text-blue-600 hover:text-blue-700 transition-colors">中文入口</a>
               <a href="/en/" class="text-blue-600 hover:text-blue-700 transition-colors">English Hub</a>
+              <a href="/zh/answers/" class="text-blue-600 hover:text-blue-700 transition-colors">中文答案中心</a>
+              <a href="/en/answers/" class="text-blue-600 hover:text-blue-700 transition-colors">English Answers</a>
               <a href="/zh/faq" class="text-blue-600 hover:text-blue-700 transition-colors">常见问题</a>
             </div>
           </section>

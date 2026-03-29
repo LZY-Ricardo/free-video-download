@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>如何用 VidGrab 生成 AI 视频总结 - VidGrab | GEO 答案中心</title>
+<meta name="description" content="说明如何通过 VidGrab 获取 AI 摘要、章节要点和思维导图。" />
+<meta name="keywords" content="如何生成 AI 视频总结, VidGrab 摘要, 视频摘要步骤, HowTo, GEO" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://vidgrab.sunandyu.top/zh/answers/how-to/how-to-generate-ai-video-summary" />
+<meta property="og:title" content="如何用 VidGrab 生成 AI 视频总结 - VidGrab | GEO 答案中心" />
+<meta property="og:description" content="说明如何通过 VidGrab 获取 AI 摘要、章节要点和思维导图。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://vidgrab.sunandyu.top/zh/answers/how-to/how-to-generate-ai-video-summary" />
+<meta property="og:image" content="https://vidgrab.sunandyu.top/og/default-share-cover.svg" />
+<meta property="og:site_name" content="VidGrab" />
+<meta property="og:locale" content="zh-CN" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="如何用 VidGrab 生成 AI 视频总结 - VidGrab | GEO 答案中心" />
+<meta name="twitter:description" content="说明如何通过 VidGrab 获取 AI 摘要、章节要点和思维导图。" />
+<meta name="twitter:image" content="https://vidgrab.sunandyu.top/og/default-share-cover.svg" />
+    <link rel="alternate" hreflang="zh-CN" href="https://vidgrab.sunandyu.top/zh/answers/how-to/how-to-generate-ai-video-summary" />
+<link rel="alternate" hreflang="en" href="https://vidgrab.sunandyu.top/en/answers/how-to/how-to-generate-ai-video-summary" />
+<link rel="alternate" hreflang="x-default" href="https://vidgrab.sunandyu.top/" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"如何用 VidGrab 生成 AI 视频总结 - VidGrab | GEO 答案中心","description":"说明如何通过 VidGrab 获取 AI 摘要、章节要点和思维导图。","url":"https://vidgrab.sunandyu.top/zh/answers/how-to/how-to-generate-ai-video-summary","inLanguage":"zh-CN"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://vidgrab.sunandyu.top/"},{"@type":"ListItem","position":2,"name":"中文入口","item":"https://vidgrab.sunandyu.top/zh/"},{"@type":"ListItem","position":3,"name":"答案中心","item":"https://vidgrab.sunandyu.top/zh/answers/"},{"@type":"ListItem","position":4,"name":"如何用 VidGrab 生成 AI 视频总结","item":"https://vidgrab.sunandyu.top/zh/answers/how-to/how-to-generate-ai-video-summary"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"如何用 VidGrab 生成 AI 视频总结 - VidGrab | GEO 答案中心","step":[{"@type":"HowToStep","position":1,"name":"输入公开视频链接","text":"在首页输入一个公开视频链接并开始解析。"},{"@type":"HowToStep","position":2,"name":"等待分析完成","text":"视频信息加载后，AI 分析会自动开始并持续更新结果。"},{"@type":"HowToStep","position":3,"name":"查看输出内容","text":"分析完成后查看总览、章节摘要、字幕、思维导图与问答区域。"},{"@type":"HowToStep","position":4,"name":"继续追问或导出","text":"根据需要继续提问，或导出字幕与图示内容。"}]}</script>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f8fafc;
+        --card: #ffffff;
+        --text: #0f172a;
+        --muted: #475569;
+        --border: #e2e8f0;
+        --accent: #1777ff;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: "Outfit", "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text); }
+      a { color: var(--accent); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      .page { max-width: 980px; margin: 0 auto; padding: 48px 20px 80px; }
+      .hero, .answer-section, .cta-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 28px; margin-bottom: 20px; }
+      .eyebrow { display: inline-flex; align-items: center; border-radius: 999px; background: #eff6ff; color: #1d4ed8; font-size: 12px; font-weight: 600; padding: 6px 12px; margin-bottom: 16px; }
+      .direct-answer { font-size: 1.05rem; line-height: 1.8; color: var(--text); margin: 0; }
+      h1 { font-size: clamp(2rem, 5vw, 3.25rem); line-height: 1.1; margin: 0 0 12px; }
+      h2 { font-size: 1.25rem; margin: 0 0 12px; }
+      h3 { font-size: 1rem; margin: 0 0 8px; }
+      p, li, td, th { color: var(--muted); font-size: 1rem; line-height: 1.75; }
+      .breadcrumbs { font-size: 14px; color: var(--muted); margin-bottom: 16px; }
+      .answer-list, .step-list, .related-links { margin: 0; padding-left: 20px; }
+      .answer-item + .answer-item, .step-item + .step-item { margin-top: 12px; }
+      .comparison-wrapper { overflow-x: auto; }
+      .comparison-table { width: 100%; border-collapse: collapse; }
+      .comparison-table th, .comparison-table td { border: 1px solid var(--border); padding: 12px; text-align: left; }
+      .comparison-table th { background: #eff6ff; color: var(--text); }
+      .cta-link { display: inline-flex; align-items: center; justify-content: center; width: fit-content; min-width: 220px; padding: 12px 18px; border-radius: 999px; background: var(--accent); color: #ffffff; font-weight: 600; }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <nav class="breadcrumbs">
+        <a href="/">首页</a> / <a href="/zh/">中文入口</a> / <a href="/zh/answers/">答案中心</a> / <a href="/zh/answers/how-to/how-to-generate-ai-video-summary">如何用 VidGrab 生成 AI 视频总结</a>
+      </nav>
+      <section class="hero">
+        <span class="eyebrow">VidGrab Answers</span>
+        <h1>如何用 VidGrab 生成 AI 视频总结</h1>
+        <p class="direct-answer">要生成 AI 视频总结，先解析公开视频链接，等待分析完成后即可查看摘要总览、章节要点、思维导图和问答入口。</p>
+      </section>
+      
+    <section class="answer-section">
+      <h2>操作步骤</h2>
+      <ol class="step-list">
+        
+              <li class="step-item">
+                <strong>输入公开视频链接</strong>
+                <p>在首页输入一个公开视频链接并开始解析。</p>
+              </li>
+            
+
+              <li class="step-item">
+                <strong>等待分析完成</strong>
+                <p>视频信息加载后，AI 分析会自动开始并持续更新结果。</p>
+              </li>
+            
+
+              <li class="step-item">
+                <strong>查看输出内容</strong>
+                <p>分析完成后查看总览、章节摘要、字幕、思维导图与问答区域。</p>
+              </li>
+            
+
+              <li class="step-item">
+                <strong>继续追问或导出</strong>
+                <p>根据需要继续提问，或导出字幕与图示内容。</p>
+              </li>
+            
+      </ol>
+    </section>
+  
+      
+        <section class="answer-section">
+          <h2>准备条件</h2>
+          <p>视频需要有可解析的内容源，且分析流程能够生成可读的转录和结构化结果。</p>
+        </section>
+      
+
+        <section class="answer-section">
+          <h2>常见错误</h2>
+          <p>如果摘要长时间未生成，可以先确认视频信息是否正常加载，或者重新发起解析。</p>
+        </section>
+      
+
+        <section class="answer-section">
+          <h2>注意事项</h2>
+          <p>AI 总结适合快速理解，不应替代对原视频的正式引用和关键细节复核。</p>
+        </section>
+      
+      
+      
+    <section class="answer-section">
+      <h2>继续查看</h2>
+      <ul class="related-links">
+        <li><a href="/zh/answers/faq/can-vidgrab-summarize-videos">VidGrab 能总结视频内容吗？</a></li>
+<li><a href="/zh/answers/how-to/how-to-export-subtitles-with-vidgrab">如何导出字幕</a></li>
+      </ul>
+    </section>
+  
+      <section class="cta-card">
+        <h2>回到 VidGrab 工具页继续操作</h2>
+        <p>如果这条答案正好适合你的场景，可以回到首页，把公开视频链接粘贴进去继续下载、导出字幕或生成 AI 总结。</p>
+        <a class="cta-link" href="/">打开首页工具</a>
+      </section>
+    </main>
+  </body>
+</html>

@@ -3,6 +3,12 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { seoContent } from './seo/content.mjs'
+import { geoAnswerContent } from './seo/answers-content.mjs'
+import {
+  renderCompareAnswerPage,
+  renderFaqAnswerPage,
+  renderHowToAnswerPage,
+} from './seo/answers-renderers.mjs'
 import { renderSeoPage } from './seo/renderers.mjs'
 import { SITE, toAbsoluteUrl } from './seo/site-config.mjs'
 
@@ -14,11 +20,16 @@ function getBreadcrumbs(locale, page) {
   const isZh = locale === 'zh-CN'
   const homeLabel = isZh ? '首页' : 'Home'
   const localeLabel = isZh ? '中文入口' : 'English Hub'
+  const answersLabel = isZh ? '答案中心' : 'Answers Hub'
 
   const breadcrumbs = [{ label: homeLabel, path: '/' }]
 
   if (page.path !== (isZh ? '/zh/' : '/en/')) {
     breadcrumbs.push({ label: localeLabel, path: isZh ? '/zh/' : '/en/' })
+  }
+
+  if (page.path.startsWith(isZh ? '/zh/answers/' : '/en/answers/')) {
+    breadcrumbs.push({ label: answersLabel, path: isZh ? '/zh/answers/' : '/en/answers/' })
   }
 
   breadcrumbs.push({ label: page.h1, path: page.path })
@@ -47,15 +58,43 @@ function normalizeOutputPath(pagePath) {
 
 function collectPages() {
   return [
-    { locale: 'zh-CN', page: seoContent.zh.hub },
-    { locale: 'en', page: seoContent.en.hub },
-    ...seoContent.zh.platforms.map((page) => ({ locale: 'zh-CN', page })),
-    ...seoContent.en.platforms.map((page) => ({ locale: 'en', page })),
-    ...seoContent.zh.features.map((page) => ({ locale: 'zh-CN', page })),
-    ...seoContent.en.features.map((page) => ({ locale: 'en', page })),
-    { locale: 'zh-CN', page: seoContent.zh.faq },
-    { locale: 'en', page: seoContent.en.faq },
+    { locale: 'zh-CN', page: seoContent.zh.hub, renderer: 'seo' },
+    { locale: 'en', page: seoContent.en.hub, renderer: 'seo' },
+    ...seoContent.zh.platforms.map((page) => ({ locale: 'zh-CN', page, renderer: 'seo' })),
+    ...seoContent.en.platforms.map((page) => ({ locale: 'en', page, renderer: 'seo' })),
+    ...seoContent.zh.features.map((page) => ({ locale: 'zh-CN', page, renderer: 'seo' })),
+    ...seoContent.en.features.map((page) => ({ locale: 'en', page, renderer: 'seo' })),
+    { locale: 'zh-CN', page: seoContent.zh.faq, renderer: 'seo' },
+    { locale: 'en', page: seoContent.en.faq, renderer: 'seo' },
+    { locale: 'zh-CN', page: geoAnswerContent.zh.hub, renderer: 'seo' },
+    { locale: 'en', page: geoAnswerContent.en.hub, renderer: 'seo' },
+    ...geoAnswerContent.zh.faq.map((page) => ({ locale: 'zh-CN', page, renderer: 'faq-answer' })),
+    ...geoAnswerContent.en.faq.map((page) => ({ locale: 'en', page, renderer: 'faq-answer' })),
+    ...geoAnswerContent.zh.howTo.map((page) => ({ locale: 'zh-CN', page, renderer: 'how-to-answer' })),
+    ...geoAnswerContent.en.howTo.map((page) => ({ locale: 'en', page, renderer: 'how-to-answer' })),
+    ...geoAnswerContent.zh.compare.map((page) => ({ locale: 'zh-CN', page, renderer: 'compare-answer' })),
+    ...geoAnswerContent.en.compare.map((page) => ({ locale: 'en', page, renderer: 'compare-answer' })),
   ]
+}
+
+function renderCollectedPage(entry, alternates, breadcrumbs) {
+  const sharedInput = {
+    locale: entry.locale,
+    page: entry.page,
+    alternates,
+    breadcrumbs,
+  }
+
+  switch (entry.renderer) {
+    case 'faq-answer':
+      return renderFaqAnswerPage(sharedInput)
+    case 'how-to-answer':
+      return renderHowToAnswerPage(sharedInput)
+    case 'compare-answer':
+      return renderCompareAnswerPage(sharedInput)
+    default:
+      return renderSeoPage(sharedInput)
+  }
 }
 
 function buildSitemap(urls) {
@@ -79,12 +118,7 @@ export function generateSiteFiles() {
     const alternates = getAlternates(entry.locale, entry.page)
     const outputPath = normalizeOutputPath(entry.page.path)
 
-    pages[outputPath] = renderSeoPage({
-      locale: entry.locale,
-      page: entry.page,
-      alternates,
-      breadcrumbs,
-    })
+    pages[outputPath] = renderCollectedPage(entry, alternates, breadcrumbs)
 
     urls.push(toAbsoluteUrl(entry.page.path))
   }
