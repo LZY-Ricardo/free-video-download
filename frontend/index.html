@@ -2,16 +2,84 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>万能视频下载器</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>万能视频下载与 AI 总结工具 - VidGrab | 下载、字幕、摘要一站完成</title>
+    <meta
+      name="description"
+      content="VidGrab 提供公开视频下载、字幕导出、音频提取和 AI 视频总结能力，帮助你快速整理 YouTube、Bilibili、TikTok、Instagram 等平台内容。"
+    />
+    <meta
+      name="keywords"
+      content="视频下载,AI 视频总结,字幕下载,YouTube 下载器,Bilibili 下载,公开视频工具,VidGrab"
+    />
+    <meta name="robots" content="index,follow" />
+    <meta name="format-detection" content="telephone=no,email=no,address=no" />
+    <link rel="canonical" href="https://vidgrab.sunandyu.top/" />
+    <link rel="alternate" hreflang="zh-CN" href="https://vidgrab.sunandyu.top/zh/" />
+    <link rel="alternate" hreflang="en" href="https://vidgrab.sunandyu.top/en/" />
+    <link rel="alternate" hreflang="x-default" href="https://vidgrab.sunandyu.top/" />
+    <meta property="og:title" content="万能视频下载与 AI 总结工具 - VidGrab" />
+    <meta
+      property="og:description"
+      content="下载公开视频、导出字幕、保存音频，并用 AI 总结长视频重点。VidGrab 将视频下载与学习整理合并到一个工作流中。"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://vidgrab.sunandyu.top/" />
+    <meta property="og:image" content="https://vidgrab.sunandyu.top/og/default-share-cover.svg" />
+    <meta property="og:site_name" content="VidGrab" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="VidGrab | 视频下载、字幕导出与 AI 总结" />
+    <meta
+      name="twitter:description"
+      content="用 VidGrab 下载公开视频、导出字幕并生成 AI 摘要，把长视频转成更容易阅读和复盘的资料。"
+    />
+    <meta name="twitter:image" content="https://vidgrab.sunandyu.top/og/default-share-cover.svg" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "name": "VidGrab",
+            "url": "https://vidgrab.sunandyu.top/",
+            "description": "AI Video Downloader & Summarizer"
+          },
+          {
+            "@type": "Organization",
+            "name": "VidGrab",
+            "url": "https://vidgrab.sunandyu.top/",
+            "logo": "https://vidgrab.sunandyu.top/og/default-share-cover.svg"
+          },
+          {
+            "@type": "WebApplication",
+            "name": "VidGrab",
+            "applicationCategory": "MultimediaApplication",
+            "operatingSystem": "Web",
+            "url": "https://vidgrab.sunandyu.top/",
+            "description": "Download public videos, export transcripts, save audio, and generate AI summaries in one workflow."
+          }
+        ]
+      }
+    </script>
     <!-- 使用Outfit字体 - 现代、有特色 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <main style="max-width: 960px; margin: 0 auto; padding: 48px 20px; font-family: Outfit, 'PingFang SC', 'Microsoft YaHei', sans-serif; color: #0f172a; background: #f8fafc;">
+        <section style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 24px; padding: 32px;">
+          <span style="display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 999px; background: #eff6ff; color: #1d4ed8; font-size: 12px; font-weight: 600;">VidGrab</span>
+          <h1 style="font-size: 40px; line-height: 1.1; margin: 16px 0 12px;">万能视频下载与 AI 总结工具</h1>
+          <p style="font-size: 16px; line-height: 1.8; color: #475569; margin: 0 0 16px;">VidGrab 帮你下载公开视频、导出字幕、提取音频，并用 AI 总结长视频内容，适合学习复盘、素材整理和跨平台保存。</p>
+          <p style="font-size: 16px; line-height: 1.8; color: #475569; margin: 0;">支持 YouTube、Bilibili、TikTok、Instagram 等平台，也提供中英双语的功能页、平台页和 FAQ 页面，方便搜索引擎与用户快速找到对应场景。</p>
+        </section>
+      </main>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

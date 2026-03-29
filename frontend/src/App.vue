@@ -17,7 +17,7 @@ import DownloadForm from './components/DownloadForm.vue'
               </svg>
             </div>
             <!-- 品牌名称 -->
-            <span class="text-lg font-bold text-gray-900">SaveAny</span>
+            <span class="text-lg font-bold text-gray-900">VidGrab</span>
           </div>
           <!-- 标签 -->
           <span class="px-2.5 py-1 text-xs font-medium rounded-md" style="background-color: #F3F4F6; color: #6B7280;">
@@ -50,10 +50,35 @@ import DownloadForm from './components/DownloadForm.vue'
     <!-- 底部 -->
     <footer class="bg-white border-t border-gray-100">
       <div class="max-w-6xl mx-auto px-6 py-8">
+        <div class="grid gap-4 md:grid-cols-3 mb-8">
+          <section class="rounded-2xl border border-gray-100 bg-gray-50 p-5">
+            <h2 class="text-base font-semibold text-gray-900 mb-2">视频下载与字幕整理</h2>
+            <p class="text-sm leading-6 text-gray-600">
+              用 VidGrab 解析公开视频链接后，可以继续完成下载、字幕导出和音频保存，适合课程复盘与素材归档。
+            </p>
+          </section>
+          <section class="rounded-2xl border border-gray-100 bg-gray-50 p-5">
+            <h2 class="text-base font-semibold text-gray-900 mb-2">AI 视频总结</h2>
+            <p class="text-sm leading-6 text-gray-600">
+              AI 学习助手会输出总览、章节要点、思维导图和流式问答，把长视频转换成更容易复盘的知识结构。
+            </p>
+          </section>
+          <section class="rounded-2xl border border-gray-100 bg-gray-50 p-5">
+            <h2 class="text-base font-semibold text-gray-900 mb-2">探索双语 SEO 页面</h2>
+            <p class="text-sm leading-6 text-gray-600">
+              你也可以从平台页、功能页和 FAQ 页面快速进入对应场景，查看更多关于 VidGrab 的能力说明。
+            </p>
+            <div class="mt-3 flex flex-wrap gap-3 text-sm">
+              <a href="/zh/" class="text-blue-600 hover:text-blue-700 transition-colors">中文入口</a>
+              <a href="/en/" class="text-blue-600 hover:text-blue-700 transition-colors">English Hub</a>
+              <a href="/zh/faq" class="text-blue-600 hover:text-blue-700 transition-colors">常见问题</a>
+            </div>
+          </section>
+        </div>
         <div class="flex flex-col md:flex-row items-center justify-between gap-4">
           <!-- 版权信息 -->
           <div class="text-sm text-gray-500">
-            © 2024 SaveAny. 仅供学习使用，请遵守相关法律法规
+            © 2026 VidGrab. 仅供学习使用，请遵守相关法律法规
           </div>
           <!-- 右侧链接 -->
           <div class="flex items-center gap-6 text-sm text-gray-500">

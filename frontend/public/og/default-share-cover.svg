@@ -1,0 +1,14 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" rx="48" fill="#020617"/>
+  <circle cx="1020" cy="92" r="160" fill="#1777FF" fill-opacity="0.18"/>
+  <circle cx="170" cy="570" r="220" fill="#38BDF8" fill-opacity="0.15"/>
+  <rect x="70" y="70" width="1060" height="490" rx="36" fill="#0F172A" stroke="#1E293B" stroke-width="2"/>
+  <rect x="110" y="118" width="96" height="96" rx="28" fill="#1777FF"/>
+  <path d="M156 145C156 141.686 158.686 139 162 139H178C181.314 139 184 141.686 184 145V187C184 190.314 181.314 193 178 193H162C158.686 193 156 190.314 156 187V145Z" fill="white"/>
+  <path d="M171 155L204 174L171 193V155Z" fill="#0F172A"/>
+  <text x="238" y="170" fill="white" font-size="68" font-family="Outfit, Arial, sans-serif" font-weight="700">VidGrab</text>
+  <text x="112" y="286" fill="#E2E8F0" font-size="48" font-family="Outfit, Arial, sans-serif" font-weight="600">Download public videos.</text>
+  <text x="112" y="352" fill="#E2E8F0" font-size="48" font-family="Outfit, Arial, sans-serif" font-weight="600">Export transcripts.</text>
+  <text x="112" y="418" fill="#E2E8F0" font-size="48" font-family="Outfit, Arial, sans-serif" font-weight="600">Generate AI summaries.</text>
+  <text x="112" y="500" fill="#93C5FD" font-size="30" font-family="Outfit, Arial, sans-serif" font-weight="500">YouTube · Bilibili · TikTok · Instagram</text>
+</svg>
