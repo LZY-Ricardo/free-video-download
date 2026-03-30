@@ -39,8 +39,17 @@ const memberSummary = computed(() => {
 
 const currentEmailLabel = computed(() => currentUser.value?.email || '未登录')
 
+let noticeTimer: ReturnType<typeof setTimeout> | null = null
+
 const setNotice = (message: string | null) => {
+  if (noticeTimer) clearTimeout(noticeTimer)
   notice.value = message
+  if (message) {
+    noticeTimer = setTimeout(() => {
+      notice.value = null
+      noticeTimer = null
+    }, 3000)
+  }
 }
 
 const replaceCurrentSearch = (entries: Record<string, string | null>) => {
