@@ -128,6 +128,8 @@ class TestVideoAIService(unittest.TestCase):
         mind_map = self.service._build_mind_map("测试标题", summary)
         self.service.analysis_cache["analysis-test"] = AnalysisRecord(
             analysis_id="analysis-test",
+            user_id="user-1",
+            access_mode="free_quota",
             video_title="测试标题",
             transcript_language="zh",
             transcript=transcript,
@@ -135,13 +137,17 @@ class TestVideoAIService(unittest.TestCase):
             mind_map=mind_map,
         )
 
-        content, filename, media_type = self.service.build_transcript_download("analysis-test", "vtt")
+        content, filename, media_type = self.service.build_transcript_download(
+            "analysis-test",
+            "user-1",
+            "vtt",
+        )
         self.assertIn("WEBVTT", content)
         self.assertTrue(filename.endswith(".vtt"))
         self.assertEqual(media_type, "text/vtt")
 
         with self.assertRaises(ValueError):
-            self.service.build_transcript_download("analysis-test", "docx")
+            self.service.build_transcript_download("analysis-test", "user-1", "docx")
 
 
 if __name__ == "__main__":

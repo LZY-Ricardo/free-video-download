@@ -44,6 +44,8 @@ class AnalysisRecord:
     """缓存的分析记录"""
 
     analysis_id: str
+    user_id: str
+    access_mode: str
     video_title: str
     transcript_language: Optional[str]
     transcript: List[TranscriptSegment]
@@ -56,6 +58,8 @@ class AnalysisTask:
     """异步分析任务"""
 
     task_id: str
+    user_id: str
+    access_mode: str
     url: str
     status: str = "pending"
     stage: str = "pending"
@@ -98,24 +102,29 @@ class VideoAIService:
         except Exception:
             return None
 
-    def analyze_video(self, url: str) -> VideoAnalysisResponse:
+    def analyze_video(self, url: str, user_id: str, access_mode: str) -> VideoAnalysisResponse:
         """
         同步分析视频并生成摘要、转录文本和思维导图
         """
-        return self._analyze_video_sync(url)
+        return self._analyze_video_sync(url, user_id=user_id, access_mode=access_mode)
 
-    def start_analysis(self, url: str) -> str:
+    def start_analysis(self, url: str, user_id: str, access_mode: str) -> str:
         """
         创建异步分析任务并立即返回任务 ID
         """
         task_id = str(uuid.uuid4())
-        self.analysis_tasks[task_id] = AnalysisTask(task_id=task_id, url=url)
-        self.executor.submit(self._run_analysis_task, task_id, url)
+        self.analysis_tasks[task_id] = AnalysisTask(
+            task_id=task_id,
+            user_id=user_id,
+            access_mode=access_mode,
+            url=url,
+        )
+        self.executor.submit(self._run_analysis_task, task_id, url, user_id, access_mode)
         return task_id
 
-    def get_analysis_task(self, task_id: str) -> Optional[AnalyzeTaskStatusResponse]:
+    def get_analysis_task(self, task_id: str, user_id: str) -> Optional[AnalyzeTaskStatusResponse]:
         task = self.analysis_tasks.get(task_id)
-        if not task:
+        if not task or task.user_id != user_id:
             return None
         return AnalyzeTaskStatusResponse(
             task_id=task.task_id,
@@ -127,14 +136,12 @@ class VideoAIService:
         )
 
     def build_transcript_download(
-        self, analysis_id: str, format_name: str = "srt"
+        self, analysis_id: str, user_id: str, format_name: str = "srt"
     ) -> Tuple[str, str, str]:
         """
         基于已分析转录构建可下载字幕文件内容。
         """
-        record = self.analysis_cache.get(analysis_id)
-        if not record:
-            raise ValueError("分析任务不存在或已过期，请先重新执行视频分析。")
+        record = self._get_owned_analysis_record(analysis_id, user_id)
 
         fmt = (format_name or "srt").strip().lower()
         builders = {
@@ -151,13 +158,18 @@ class VideoAIService:
         filename = f"{file_base}.{fmt}"
         return content, filename, media_type
 
-    def _run_analysis_task(self, task_id: str, url: str):
+    def _run_analysis_task(self, task_id: str, url: str, user_id: str, access_mode: str):
         def update(progress: float, stage: str):
             self._update_task(task_id, progress=progress, stage=stage, status="processing")
 
         self._update_task(task_id, status="processing", stage="解析视频信息", progress=3)
         try:
-            result = self._analyze_video_sync(url, progress_callback=update)
+            result = self._analyze_video_sync(
+                url,
+                user_id=user_id,
+                access_mode=access_mode,
+                progress_callback=update,
+            )
             self._update_task(
                 task_id,
                 status="completed",
@@ -199,7 +211,11 @@ class VideoAIService:
         task.updated_at = datetime.now()
 
     def _analyze_video_sync(
-        self, url: str, progress_callback: Optional[Callable[[float, str], None]] = None
+        self,
+        url: str,
+        user_id: str,
+        access_mode: str,
+        progress_callback: Optional[Callable[[float, str], None]] = None,
     ) -> VideoAnalysisResponse:
         if progress_callback:
             progress_callback(8, "提取视频信息")
@@ -255,6 +271,8 @@ class VideoAIService:
         analysis_id = str(uuid.uuid4())
         record = AnalysisRecord(
             analysis_id=analysis_id,
+            user_id=user_id,
+            access_mode=access_mode,
             video_title=title,
             transcript_language=language,
             transcript=transcript,
@@ -275,11 +293,11 @@ class VideoAIService:
             progress_callback(100, "分析完成")
         return response
 
-    def ask_question(self, analysis_id: str, question: str) -> ChatResponse:
+    def ask_question(self, analysis_id: str, user_id: str, question: str) -> ChatResponse:
         """
         针对指定视频分析结果进行问答
         """
-        record, candidates, citation_segments = self._prepare_chat_context(analysis_id, question)
+        record, candidates, citation_segments = self._prepare_chat_context(analysis_id, user_id, question)
         answer, citations = self._answer_with_ai_or_fallback(
             question=question,
             title=record.video_title,
@@ -297,11 +315,11 @@ class VideoAIService:
             ],
         )
 
-    def stream_answer(self, analysis_id: str, question: str) -> Iterator[Dict[str, Any]]:
+    def stream_answer(self, analysis_id: str, user_id: str, question: str) -> Iterator[Dict[str, Any]]:
         """
         流式输出问答结果，优先走大模型 token stream，失败时回退本地答案分片输出。
         """
-        record, candidates, citation_segments = self._prepare_chat_context(analysis_id, question)
+        record, candidates, citation_segments = self._prepare_chat_context(analysis_id, user_id, question)
         citations_payload = [
             {
                 "timestamp": segment.timestamp,
@@ -331,7 +349,7 @@ class VideoAIService:
 
         yield {"event": "done", "data": {"citations": citations_payload}}
 
-    def stream_analysis(self, url: str) -> Iterator[Dict[str, Any]]:
+    def stream_analysis(self, url: str, user_id: str, access_mode: str) -> Iterator[Dict[str, Any]]:
         """
         SSE 流式分析：逐步推送进度、字幕、摘要流（overview 逐字）、思维导图。
         前端通过 EventSource 消费，不再需要轮询。
@@ -441,6 +459,8 @@ class VideoAIService:
             analysis_id = str(uuid.uuid4())
             record = AnalysisRecord(
                 analysis_id=analysis_id,
+                user_id=user_id,
+                access_mode=access_mode,
                 video_title=title,
                 transcript_language=language,
                 transcript=transcript,
@@ -456,15 +476,19 @@ class VideoAIService:
             yield {"event": "error", "data": {"message": f"AI 分析失败: {exc}"}}
 
     def _prepare_chat_context(
-        self, analysis_id: str, question: str
+        self, analysis_id: str, user_id: str, question: str
     ) -> Tuple[AnalysisRecord, List[TranscriptSegment], List[TranscriptSegment]]:
-        record = self.analysis_cache.get(analysis_id)
-        if not record:
-            raise ValueError("分析任务不存在或已过期，请先重新执行视频分析。")
+        record = self._get_owned_analysis_record(analysis_id, user_id)
 
         candidates = self._retrieve_relevant_segments(question, record.transcript, top_k=6)
         citation_segments = candidates[:4]
         return record, candidates, citation_segments
+
+    def _get_owned_analysis_record(self, analysis_id: str, user_id: str) -> AnalysisRecord:
+        record = self.analysis_cache.get(analysis_id)
+        if not record or record.user_id != user_id:
+            raise ValueError("分析任务不存在或已过期，请先重新执行视频分析。")
+        return record
 
     def _build_transcript_srt(self, transcript: List[TranscriptSegment]) -> str:
         lines: List[str] = []

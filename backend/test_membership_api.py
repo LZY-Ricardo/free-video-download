@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from app.database import Base, SessionLocal, engine
 from app.db_models import User
 from app.main import app
+from app.models import MindMapNode, SummarySection, TranscriptSegment, VideoAnalysisResponse, VideoSummary
 from app.security import hash_password, utcnow
 
 
@@ -55,7 +56,18 @@ class TestMembershipAPI(unittest.TestCase):
 
     @patch("app.routers.ai.video_ai_service.analyze_video")
     def test_ai_analyze_requires_login(self, mock_analyze_video):
-        mock_analyze_video.return_value = {"analysis_id": "x"}
+        mock_analyze_video.return_value = VideoAnalysisResponse(
+            analysis_id="test-analysis-id",
+            video_title="测试视频",
+            transcript_language="zh",
+            summary=VideoSummary(
+                overview="这是摘要",
+                key_points=["要点1"],
+                sections=[SummarySection(title="章节1", start="00:00:10", summary="章节摘要")],
+            ),
+            transcript=[TranscriptSegment(start=10, end=15, timestamp="00:00:10", text="第一段内容")],
+            mind_map=MindMapNode(id="root", label="测试视频", children=[]),
+        )
 
         response = self.client.post(
             "/api/ai/analyze",
@@ -63,20 +75,6 @@ class TestMembershipAPI(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 401)
-
-    @patch("app.routers.ai.video_ai_service.analyze_video")
-    def test_ai_analyze_requires_active_membership(self, mock_analyze_video):
-        mock_analyze_video.return_value = {"analysis_id": "x"}
-        user = self._create_verified_user()
-        self._login(user["email"], user["password"])
-
-        response = self.client.post(
-            "/api/ai/analyze",
-            json={"url": "https://example.com/video"},
-        )
-
-        self.assertEqual(response.status_code, 403)
-        self.assertIn("仅限会员使用", response.json()["detail"])
 
 
 if __name__ == "__main__":

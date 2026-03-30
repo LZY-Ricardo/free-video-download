@@ -30,7 +30,7 @@ const startCheckout = () => emit('checkout')
           解锁视频总结、字幕整理、脑图导出和 AI 问答
         </h4>
         <p class="text-sm text-gray-600 mt-2 leading-6">
-          会员价格固定为 19.9 CNY / 30 天。下载功能继续免费，只有 AI 学习助手需要会员。
+          下载功能永久免费。AI 学习助手支持免费体验，次数用完后可开通 VIP 持续使用完整能力。
         </p>
       </div>
       <span class="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-medium text-blue-700 border border-blue-100">
@@ -55,7 +55,7 @@ const startCheckout = () => emit('checkout')
     </div>
 
     <div v-else-if="authenticated" class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-      当前账号未开通会员，购买后立即解锁所有 AI 学习能力。
+      当前账号未开通会员。你可以先直接体验 AI 学习助手，次数用完后再开通 VIP。
     </div>
 
     <div class="mt-5 flex flex-wrap gap-3">

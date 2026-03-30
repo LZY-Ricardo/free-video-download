@@ -40,6 +40,10 @@ class User(Base):
         cascade="all, delete-orphan",
     )
     membership_orders: Mapped[list["MembershipOrder"]] = relationship(back_populates="user")
+    daily_ai_usages: Mapped[list["DailyAIUsage"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
     membership: Mapped["UserMembership | None"] = relationship(
         back_populates="user",
         uselist=False,
@@ -103,6 +107,19 @@ class UserMembership(Base):
 
     user: Mapped[User] = relationship(back_populates="membership")
     source_order: Mapped[MembershipOrder | None] = relationship(back_populates="membership")
+
+
+class DailyAIUsage(Base):
+    __tablename__ = "daily_ai_usage"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), index=True)
+    usage_date: Mapped[str] = mapped_column(String(10), index=True)
+    used_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)
+
+    user: Mapped[User] = relationship(back_populates="daily_ai_usages")
 
 
 class StripeWebhookEvent(Base):

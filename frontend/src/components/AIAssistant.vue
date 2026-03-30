@@ -59,6 +59,8 @@ const fullscreenMindMapRef = ref<MindMapExporter | null>(null)
 
 const transcriptCount = computed(() => analysisResult.value?.transcript?.length || 0)
 const hasActiveMembership = computed(() => props.authenticated && !!props.membership?.is_member)
+const canAutoAnalyze = computed(() => props.authenticated)
+const shouldShowLockedCard = computed(() => !analysisResult.value && !analyzing.value)
 
 const tabItems = [
   { key: 'summary', label: '总结摘要' },
@@ -84,12 +86,8 @@ const tabContentClass = computed(() => {
 })
 
 const onAnalyze = () => {
-  if (!hasActiveMembership.value) {
-    if (!props.authenticated) {
-      emit('open-auth', 'login')
-      return
-    }
-    emit('start-checkout')
+  if (!props.authenticated) {
+    emit('open-auth', 'login')
     return
   }
   analyzeVideo(props.url)
@@ -108,7 +106,7 @@ const startCheckout = () => {
 watch(
   () => props.analyzeTrigger,
   (newVal) => {
-    if (newVal > 0 && props.url && !analyzing.value && hasActiveMembership.value) {
+    if (newVal > 0 && props.url && !analyzing.value && canAutoAnalyze.value) {
       onAnalyze()
     }
   },
@@ -260,7 +258,7 @@ onBeforeUnmount(() => {
     </div>
 
     <MembershipCard
-      v-else-if="!hasActiveMembership"
+      v-else-if="!hasActiveMembership && shouldShowLockedCard"
       :authenticated="props.authenticated"
       :membership="props.membership"
       :checkout-loading="props.checkoutLoading"
