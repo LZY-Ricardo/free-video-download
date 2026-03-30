@@ -1,12 +1,14 @@
 """
 应用配置
 """
-from pydantic_settings import BaseSettings
 from pydantic import field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """应用设置"""
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     # 应用配置
     APP_NAME: str = "万能视频下载器"
@@ -25,9 +27,34 @@ class Settings(BaseSettings):
     DOWNLOAD_DIR: str = "downloads"
     MAX_CONCURRENT_DOWNLOADS: int = 3
 
+    # 数据库配置
+    DATABASE_URL: str = "sqlite:///./app.db"
+
     # 限流配置
     RATE_LIMIT_REQUESTS: int = 5
     RATE_LIMIT_PERIOD: int = 60  # 秒
+
+    # 认证配置
+    JWT_SECRET: str = "vidgrab-dev-secret-change-me-to-a-32-byte-key"
+    JWT_EXPIRE_DAYS: int = 7
+    ACCESS_TOKEN_COOKIE_NAME: str = "vidgrab_access_token"
+
+    # 邮件配置
+    MAIL_MODE: str = "local"
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = ""
+    APP_BASE_URL: str = "http://localhost:8000"
+    FRONTEND_BASE_URL: str = "http://localhost:5173"
+
+    # 支付配置
+    PAYMENT_PROVIDER_MODE: str = "mock"
+    STRIPE_SECRET_KEY: str = ""
+    STRIPE_PUBLISHABLE_KEY: str = ""
+    STRIPE_WEBHOOK_SECRET: str = ""
+    STRIPE_PRICE_ID: str = ""
 
     # AI 配置（可选，未配置时使用本地规则回退）
     AI_PROVIDER: str = "openai_compatible"
@@ -48,9 +75,6 @@ class Settings(BaseSettings):
             if normalized in {"debug", "true", "1", "on", "yes"}:
                 return True
         return value
-
-    class Config:
-        env_file = ".env"
 
 
 settings = Settings()

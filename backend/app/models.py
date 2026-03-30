@@ -1,8 +1,61 @@
 """
 数据模型
 """
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional, List, Any
+
+
+class RegisterRequest(BaseModel):
+    """注册请求"""
+
+    email: EmailStr = Field(..., description="邮箱地址")
+    password: str = Field(..., min_length=8, max_length=72, description="登录密码")
+
+
+class RegisterResponse(BaseModel):
+    """注册响应"""
+
+    message: str
+    requires_email_verification: bool = True
+    debug_verify_url: Optional[str] = None
+
+
+class LoginRequest(BaseModel):
+    """登录请求"""
+
+    email: EmailStr = Field(..., description="邮箱地址")
+    password: str = Field(..., min_length=8, max_length=72, description="登录密码")
+
+
+class UserProfile(BaseModel):
+    """用户资料"""
+
+    id: str
+    email: EmailStr
+    email_verified: bool
+
+
+class LoginResponse(BaseModel):
+    """登录响应"""
+
+    user: UserProfile
+
+
+class CurrentUserResponse(BaseModel):
+    """当前登录用户响应"""
+
+    authenticated: bool
+    user: Optional[UserProfile] = None
+
+
+class MembershipStatusResponse(BaseModel):
+    """会员状态响应"""
+
+    is_member: bool
+    plan_code: Optional[str] = None
+    status: str = "inactive"
+    expires_at: Optional[str] = None
+    remaining_days: int = 0
 
 
 class VideoInfo(BaseModel):

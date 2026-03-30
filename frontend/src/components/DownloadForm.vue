@@ -5,6 +5,19 @@ import VideoInfo from './VideoInfo.vue'
 import FormatSelector from './FormatSelector.vue'
 import ProgressBar from './ProgressBar.vue'
 import AIAssistant from './AIAssistant.vue'
+import type { MembershipStatusResponse } from '@/types'
+
+defineProps<{
+  authenticated: boolean
+  membership: MembershipStatusResponse | null
+  membershipLoading: boolean
+  checkoutLoading: boolean
+}>()
+
+defineEmits<{
+  (e: 'open-auth', mode: 'login' | 'register'): void
+  (e: 'start-checkout'): void
+}>()
 
 const {
   url,
@@ -142,13 +155,22 @@ const handleDownload = (options: any) => {
         />
       </div>
 
-      <!-- ===== 右栏：AI 学习助手（高度跟随左栏） ===== -->
-      <div class="relative min-w-0">
-        <div class="lg:absolute lg:inset-0 lg:overflow-hidden">
-          <AIAssistant :url="url" :analyze-trigger="analyzeTrigger" />
+        <!-- ===== 右栏：AI 学习助手（高度跟随左栏） ===== -->
+        <div class="relative min-w-0">
+          <div class="lg:absolute lg:inset-0 lg:overflow-hidden">
+            <AIAssistant
+              :url="url"
+              :analyze-trigger="analyzeTrigger"
+              :authenticated="authenticated"
+              :membership="membership"
+              :membership-loading="membershipLoading"
+              :checkout-loading="checkoutLoading"
+              @open-auth="$emit('open-auth', $event)"
+              @start-checkout="$emit('start-checkout')"
+            />
+          </div>
         </div>
       </div>
-    </div>
 
     <!-- ========== 底部平台展示：compact 模式隐藏 ========== -->
     <div v-if="!hasVideoInfo" class="mt-16 text-center max-w-3xl mx-auto">

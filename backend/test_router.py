@@ -7,6 +7,14 @@ from app.services.douyin_service import douyin_service
 
 test_url = 'https://www.douyin.com/video/7123456789012345678'
 
+
+def safe_text(value: str, max_len: int) -> str:
+    preview = value[:max_len]
+    return preview.encode(sys.stdout.encoding or 'utf-8', errors='replace').decode(
+        sys.stdout.encoding or 'utf-8',
+        errors='replace',
+    )
+
 print('=' * 60)
 print('Testing router logic directly')
 print('=' * 60)
@@ -28,7 +36,7 @@ if is_douyin_url(request.url):
     try:
         print("[Douyin] Calling service...")
         info = douyin_service.get_video_info(request.url)
-        print(f"[Douyin] Service returned: title={info.get('title', 'N/A')[:40]}")
+        print(f"[Douyin] Service returned: title={safe_text(info.get('title', 'N/A'), 40)}")
     except Exception as service_error:
         print(f"[Douyin] Service exception: {service_error}")
         import traceback
@@ -60,7 +68,7 @@ if is_douyin_url(request.url):
             "direct_url": info.get('direct_url', ''),
         }
         print("[Douyin] SUCCESS!")
-        print(f"  Title: {response['title'][:50]}")
+        print(f"  Title: {safe_text(response['title'], 50)}")
         print(f"  Duration: {response['duration']}s")
         print(f"  Has direct_url: {bool(response['direct_url'])}")
     else:

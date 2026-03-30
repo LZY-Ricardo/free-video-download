@@ -4,7 +4,9 @@ FastAPI 主应用
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.routers import info, download, direct, image, ai
+from app.database import Base, engine
+from app import db_models  # noqa: F401
+from app.routers import auth, info, download, direct, image, ai, membership, billing, dev_mock_billing
 
 # 创建应用
 app = FastAPI(
@@ -28,6 +30,16 @@ app.include_router(download.router)
 app.include_router(direct.router)
 app.include_router(image.router)
 app.include_router(ai.router)
+app.include_router(auth.router)
+app.include_router(membership.router)
+app.include_router(billing.router)
+app.include_router(dev_mock_billing.router)
+
+
+@app.on_event("startup")
+def create_tables() -> None:
+    """创建持久化表。"""
+    Base.metadata.create_all(bind=engine)
 
 
 @app.get("/")

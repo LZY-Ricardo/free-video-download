@@ -3,6 +3,8 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import MarkdownIt from 'markdown-it'
 
 import { useVideoAI, type TranscriptFormat } from '@/composables/useVideoAI'
+import type { MembershipStatusResponse } from '@/types'
+import MembershipCard from './MembershipCard.vue'
 import MindMapTree from './MindMapTree.vue'
 
 type MindMapExportFormat = 'png' | 'svg'
@@ -15,9 +17,20 @@ interface MindMapExporter {
 const props = withDefaults(defineProps<{
   url: string
   analyzeTrigger?: number
+  authenticated: boolean
+  membership: MembershipStatusResponse | null
+  membershipLoading?: boolean
+  checkoutLoading?: boolean
 }>(), {
   analyzeTrigger: 0,
+  membershipLoading: false,
+  checkoutLoading: false,
 })
+
+const emit = defineEmits<{
+  (e: 'open-auth', mode: 'login' | 'register'): void
+  (e: 'start-checkout'): void
+}>()
 
 const {
   analyzing,
@@ -45,6 +58,7 @@ const mindMapRef = ref<MindMapExporter | null>(null)
 const fullscreenMindMapRef = ref<MindMapExporter | null>(null)
 
 const transcriptCount = computed(() => analysisResult.value?.transcript?.length || 0)
+const hasActiveMembership = computed(() => props.authenticated && !!props.membership?.is_member)
 
 const tabItems = [
   { key: 'summary', label: '总结摘要' },
@@ -70,7 +84,23 @@ const tabContentClass = computed(() => {
 })
 
 const onAnalyze = () => {
+  if (!hasActiveMembership.value) {
+    if (!props.authenticated) {
+      emit('open-auth', 'login')
+      return
+    }
+    emit('start-checkout')
+    return
+  }
   analyzeVideo(props.url)
+}
+
+const openAuth = (mode: 'login' | 'register') => {
+  emit('open-auth', mode)
+}
+
+const startCheckout = () => {
+  emit('start-checkout')
 }
 
 // 监听外部触发信号：自动开始分析
@@ -78,7 +108,7 @@ const onAnalyze = () => {
 watch(
   () => props.analyzeTrigger,
   (newVal) => {
-    if (newVal > 0 && props.url && !analyzing.value) {
+    if (newVal > 0 && props.url && !analyzing.value && hasActiveMembership.value) {
       onAnalyze()
     }
   },
@@ -222,7 +252,23 @@ onBeforeUnmount(() => {
       {{ analysisError }}
     </div>
 
-    <div v-if="showTabs" class="rounded-xl border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0">
+    <div
+      v-if="props.membershipLoading"
+      class="flex-1 rounded-xl border border-gray-200 bg-gray-50 p-6 text-sm text-gray-500"
+    >
+      正在加载会员状态...
+    </div>
+
+    <MembershipCard
+      v-else-if="!hasActiveMembership"
+      :authenticated="props.authenticated"
+      :membership="props.membership"
+      :checkout-loading="props.checkoutLoading"
+      @open-auth="openAuth"
+      @checkout="startCheckout"
+    />
+
+    <div v-else-if="showTabs" class="rounded-xl border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0">
       <!-- 分析中：顶部细进度条 -->
       <div v-if="analyzing" class="h-1 bg-blue-100 overflow-hidden shrink-0">
         <div class="h-full bg-blue-500 transition-all duration-500 ease-out" :style="{ width: `${analysisProgress}%` }"></div>

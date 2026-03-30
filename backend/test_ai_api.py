@@ -1,11 +1,14 @@
 """
 AI API 测试
 """
+from datetime import timedelta
 import unittest
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
+from app.database import Base, SessionLocal, engine
+from app.db_models import User, UserMembership
 from app.main import app
 from app.models import (
     AnalyzeTaskStatusResponse,
@@ -16,11 +19,44 @@ from app.models import (
     VideoAnalysisResponse,
     VideoSummary,
 )
+from app.security import hash_password, utcnow
 
 
 class TestAIAPI(unittest.TestCase):
     def setUp(self):
+        Base.metadata.drop_all(bind=engine)
+        Base.metadata.create_all(bind=engine)
         self.client = TestClient(app)
+        self.user = self._create_member_user()
+        self.client.post(
+            "/api/auth/login",
+            json={"email": self.user["email"], "password": self.user["password"]},
+        )
+
+    def tearDown(self):
+        self.client.close()
+
+    def _create_member_user(self):
+        with SessionLocal() as db:
+            user = User(
+                email="member@example.com",
+                password_hash=hash_password("password123"),
+                email_verified_at=utcnow(),
+                status="active",
+            )
+            db.add(user)
+            db.flush()
+            membership = UserMembership(
+                user_id=user.id,
+                plan_code="vip_30d",
+                started_at=utcnow(),
+                expires_at=utcnow() + timedelta(days=30),
+                status="active",
+            )
+            db.add(membership)
+            db.commit()
+            db.refresh(user)
+            return {"email": user.email, "password": "password123"}
 
     def test_analyze_video_success(self):
         mock_result = VideoAnalysisResponse(

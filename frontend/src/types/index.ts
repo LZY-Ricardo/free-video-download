@@ -29,6 +29,51 @@ export interface DownloadRequest {
   quality?: string
 }
 
+export interface RegisterRequest {
+  email: string
+  password: string
+}
+
+export interface RegisterResponse {
+  message: string
+  requires_email_verification: boolean
+  debug_verify_url?: string | null
+}
+
+export interface LoginRequest {
+  email: string
+  password: string
+}
+
+export interface UserProfile {
+  id: string
+  email: string
+  email_verified: boolean
+}
+
+export interface LoginResponse {
+  user: UserProfile
+}
+
+export interface CurrentUserResponse {
+  authenticated: boolean
+  user?: UserProfile | null
+}
+
+export interface MembershipStatusResponse {
+  is_member: boolean
+  plan_code?: string | null
+  status: string
+  expires_at?: string | null
+  remaining_days: number
+}
+
+export interface CheckoutSessionResponse {
+  order_id: string
+  checkout_url: string
+  provider: 'mock' | 'stripe'
+}
+
 export interface DownloadResponse {
   task_id: string
   status: string

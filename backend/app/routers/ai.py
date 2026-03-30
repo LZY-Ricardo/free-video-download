@@ -4,9 +4,10 @@ AI 视频分析 API
 import json
 from urllib.parse import quote
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response, StreamingResponse
 
+from app.dependencies import require_active_member
 from app.models import (
     AnalyzeRequest,
     AnalyzeStartResponse,
@@ -17,7 +18,11 @@ from app.models import (
 )
 from app.services.video_ai_service import video_ai_service
 
-router = APIRouter(prefix="/api/ai", tags=["ai"])
+router = APIRouter(
+    prefix="/api/ai",
+    tags=["ai"],
+    dependencies=[Depends(require_active_member)],
+)
 
 
 def _format_sse_event(event: str, data: dict) -> str:
