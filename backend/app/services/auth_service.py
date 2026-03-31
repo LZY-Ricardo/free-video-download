@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.db_models import EmailVerificationToken, User
 from app.models import UserProfile
 from app.security import (
+    ensure_utc_naive,
     generate_raw_token,
     hash_password,
     hash_token,
@@ -77,7 +78,8 @@ class AuthService:
             raise ValueError("验证链接无效或已过期")
 
         now = utcnow()
-        if token.used_at is not None or token.expires_at < now:
+        expires_at = ensure_utc_naive(token.expires_at)
+        if token.used_at is not None or expires_at < now:
             raise ValueError("验证链接无效或已过期")
 
         user = db.get(User, token.user_id)

@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.db_models import MembershipOrder, UserMembership
 from app.models import MembershipStatusResponse
-from app.security import utcnow
+from app.security import ensure_utc_naive, utcnow
 
 
 class MembershipService:
@@ -23,6 +23,8 @@ class MembershipService:
         now: datetime | None = None,
     ) -> tuple[datetime, datetime]:
         now = now or utcnow()
+        if active_expires_at is not None:
+            active_expires_at = ensure_utc_naive(active_expires_at)
         extension_base = (
             active_expires_at
             if active_expires_at is not None and active_expires_at > now
@@ -40,16 +42,19 @@ class MembershipService:
         membership = cls.get_membership(db, user_id)
         if not membership:
             return False
-        return membership.status == "active" and membership.expires_at > utcnow()
+        return membership.status == "active" and ensure_utc_naive(membership.expires_at) > utcnow()
 
     @classmethod
     def get_membership_status(cls, db: Session, user_id: str) -> MembershipStatusResponse:
         membership = cls.get_membership(db, user_id)
         now = utcnow()
-        if not membership or membership.status != "active" or membership.expires_at <= now:
+        if not membership:
+            return MembershipStatusResponse(is_member=False, status="inactive")
+        expires_at = ensure_utc_naive(membership.expires_at)
+        if membership.status != "active" or expires_at <= now:
             return MembershipStatusResponse(is_member=False, status="inactive")
 
-        remaining_seconds = max(0, (membership.expires_at - now).total_seconds())
+        remaining_seconds = max(0, (expires_at - now).total_seconds())
         remaining_days = int(remaining_seconds // 86400)
         if remaining_seconds % 86400:
             remaining_days += 1
@@ -58,7 +63,7 @@ class MembershipService:
             is_member=True,
             plan_code=membership.plan_code,
             status=membership.status,
-            expires_at=membership.expires_at.isoformat(),
+            expires_at=expires_at.isoformat(),
             remaining_days=remaining_days,
         )
 

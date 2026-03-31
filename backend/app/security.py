@@ -17,8 +17,14 @@ from app.config import settings
 password_hasher = PasswordHasher()
 
 
+def ensure_utc_naive(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value
+    return value.astimezone(UTC).replace(tzinfo=None)
+
+
 def utcnow() -> datetime:
-    return datetime.now(UTC).replace(tzinfo=None)
+    return ensure_utc_naive(datetime.now(UTC))
 
 
 def hash_password(password: str) -> str:

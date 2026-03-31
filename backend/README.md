@@ -14,6 +14,8 @@ pip install -r requirements.txt
 
 ```env
 DATABASE_URL=sqlite:///./app.db
+# 生产（Supabase）示例：
+# DATABASE_URL=postgresql+psycopg://postgres.<project-ref>:<DB_PASSWORD>@db.<project-ref>.supabase.co:5432/postgres
 JWT_SECRET=vidgrab-dev-secret-change-me-to-a-32-byte-key
 JWT_EXPIRE_DAYS=7
 ACCESS_TOKEN_COOKIE_NAME=vidgrab_access_token
@@ -35,6 +37,7 @@ STRIPE_PRICE_ID=
 - `MAIL_MODE=local` 时，注册接口会在响应中返回 `debug_verify_url`，便于开发环境直接验证邮箱。
 - `PAYMENT_PROVIDER_MODE=mock` 时，不会访问外网 Stripe，而是走本地模拟支付。
 - `PAYMENT_PROVIDER_MODE=stripe` 时，需要配置 Stripe 测试环境密钥和 `price_id`。
+- 使用 Supabase 时，若数据库密码含 `@ : / #` 等字符，需要 URL 编码后再写入 `DATABASE_URL`。
 
 ## 运行服务
 
