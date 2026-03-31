@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     SMTP_USERNAME: str = ""
     SMTP_PASSWORD: str = ""
     SMTP_FROM_EMAIL: str = ""
+    # Resend 配置
+    RESEND_API_KEY: str = ""
+    MAIL_FROM_NAME: str = "VidGrab"
+    MAIL_FROM_ADDRESS: str = "noreply@mail.sunandyu.top"
     APP_BASE_URL: str = "http://localhost:8000"
     FRONTEND_BASE_URL: str = "http://localhost:5173"
 

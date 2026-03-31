@@ -67,6 +67,14 @@ const switchMode = (mode: 'login' | 'register') => {
   clearFeedback()
 }
 
+const switchToLoginWithPrefill = () => {
+  loginForm.email = registerForm.email
+  loginForm.password = registerForm.password
+  activeMode.value = 'login'
+  localError.value = null
+  clearFeedback()
+}
+
 const handleClose = () => {
   emit('close')
 }
@@ -215,6 +223,12 @@ const handleRegister = async () => {
 
             <div v-if="registerMessage" class="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
               <p>{{ registerMessage }}</p>
+              <button
+                class="mt-3 w-full rounded-lg border border-green-300 bg-white px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-50 transition-colors"
+                @click="switchToLoginWithPrefill"
+              >
+                验证完成后点此登录 →
+              </button>
               <a
                 v-if="debugVerifyUrl"
                 class="mt-2 inline-flex text-blue-600 hover:text-blue-700 underline underline-offset-2"

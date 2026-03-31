@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -40,9 +41,9 @@ def register(request: RegisterRequest, db: Session = Depends(get_db)):
 def verify_email(token: str = Query(...), db: Session = Depends(get_db)):
     try:
         auth_service.verify_email(db, token)
-        return {"message": "邮箱验证成功"}
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return RedirectResponse(f"{settings.FRONTEND_BASE_URL}/?verify=success")
+    except ValueError:
+        return RedirectResponse(f"{settings.FRONTEND_BASE_URL}/?verify=failed")
 
 
 @router.post("/login", response_model=LoginResponse)

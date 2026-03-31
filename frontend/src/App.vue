@@ -94,6 +94,15 @@ const syncUrlState = async () => {
     mockCheckoutOrderId.value = mockOrderId
   }
 
+  const verifyResult = params.get('verify')
+  if (verifyResult === 'success') {
+    setNotice('邮箱验证成功，请登录账号')
+    replaceCurrentSearch({ verify: null })
+  } else if (verifyResult === 'failed') {
+    setNotice('验证链接已过期或无效，请重新注册')
+    replaceCurrentSearch({ verify: null })
+  }
+
   if (billingResult === 'success') {
     setNotice('支付已提交，正在同步会员状态...')
     await pollMembershipAfterBilling()
