@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { onUnmounted, ref } from 'vue'
 import type { VideoInfo, TaskStatus } from '@/types'
 import apiClient from '@/api/client'
 
@@ -12,6 +12,22 @@ export function useDownload() {
   const error = ref<string | null>(null)
   const loading = ref(false)
   const extractedUrl = ref<string | null>(null) // 显示提取到的URL
+  let extractedUrlTimer: ReturnType<typeof setTimeout> | null = null
+
+  const clearExtractedUrlTimer = () => {
+    if (extractedUrlTimer) {
+      clearTimeout(extractedUrlTimer)
+      extractedUrlTimer = null
+    }
+  }
+
+  const scheduleExtractedUrlAutoHide = () => {
+    clearExtractedUrlTimer()
+    extractedUrlTimer = setTimeout(() => {
+      extractedUrl.value = null
+      extractedUrlTimer = null
+    }, 5000)
+  }
 
   // 从分享文本中提取URL
   const extractUrl = (text: string): string => {
@@ -36,8 +52,10 @@ export function useDownload() {
     if (cleanUrl !== originalInput) {
       extractedUrl.value = cleanUrl
       url.value = cleanUrl
+      scheduleExtractedUrlAutoHide()
     } else {
       extractedUrl.value = null
+      clearExtractedUrlTimer()
     }
 
     loading.value = true
@@ -133,6 +151,7 @@ export function useDownload() {
 
   // 重置状态
   const reset = () => {
+    clearExtractedUrlTimer()
     url.value = ''
     videoInfo.value = null
     taskId.value = null
@@ -142,6 +161,10 @@ export function useDownload() {
     error.value = null
     loading.value = false
   }
+
+  onUnmounted(() => {
+    clearExtractedUrlTimer()
+  })
 
   return {
     url,

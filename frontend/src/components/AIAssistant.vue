@@ -548,7 +548,7 @@ onBeforeUnmount(() => {
               <input
                 v-model="question"
                 type="text"
-                placeholder="输入问题，例如：这个项目主要做了什么？"
+                placeholder="基于当前视频提问，例如：这段视频的核心观点是什么？"
                 class="flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 @keyup.enter="onAsk"
               />
