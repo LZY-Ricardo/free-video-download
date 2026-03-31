@@ -218,9 +218,9 @@ onMounted(async () => {
 
         <!-- 中间导航链接 -->
         <div class="flex items-center gap-8">
-          <a href="#" class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">功能特性</a>
-          <a href="#" class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">套餐价格</a>
-          <a href="#" class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">支持平台</a>
+          <a href="#features" class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">功能特性</a>
+          <a href="#pricing" class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">套餐价格</a>
+          <a href="#platforms" class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">支持平台</a>
         </div>
 
         <!-- 右侧账号与会员入口 -->
@@ -324,8 +324,57 @@ onMounted(async () => {
       />
     </main>
 
+    <!-- 功能特性区块 -->
+    <section id="features" class="bg-gray-50 border-t border-gray-100">
+      <div class="max-w-4xl mx-auto px-6 py-16">
+        <div class="text-center mb-10">
+          <h2 class="text-2xl font-bold text-gray-900">功能特性</h2>
+          <p class="text-sm text-gray-500 mt-2">简单三步，完成下载与 AI 分析</p>
+        </div>
+        <div class="grid md:grid-cols-3 gap-6">
+          <div class="rounded-2xl border border-gray-200 bg-white p-6">
+            <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center mb-4">
+              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            </div>
+            <h3 class="text-base font-semibold text-gray-900 mb-2">视频下载</h3>
+            <p class="text-sm text-gray-600 leading-6">粘贴链接即可解析，支持 MP4 / MP3 / WebM 等格式，多清晰度自由选择，实时进度显示。</p>
+          </div>
+          <div class="rounded-2xl border border-gray-200 bg-white p-6">
+            <div class="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center mb-4">
+              <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m1.636 6.364l.707-.707M12 21v-1m-6.364-1.636l.707-.707"/></svg>
+            </div>
+            <h3 class="text-base font-semibold text-gray-900 mb-2">AI 视频总结</h3>
+            <p class="text-sm text-gray-600 leading-6">自动生成摘要、章节要点和思维导图，字幕支持 SRT / VTT / TXT 导出，AI 问答流式回答。</p>
+          </div>
+          <div class="rounded-2xl border border-gray-200 bg-white p-6">
+            <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center mb-4">
+              <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+            </div>
+            <h3 class="text-base font-semibold text-gray-900 mb-2">安全可靠</h3>
+            <p class="text-sm text-gray-600 leading-6">文件下载后服务器立即清理，不留存任何用户数据，邮箱验证保障账号安全。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 支持平台区块 -->
+    <section id="platforms" class="bg-white border-t border-gray-100">
+      <div class="max-w-4xl mx-auto px-6 py-16">
+        <div class="text-center mb-10">
+          <h2 class="text-2xl font-bold text-gray-900">支持平台</h2>
+          <p class="text-sm text-gray-500 mt-2">基于 yt-dlp，支持全球 1000+ 视频网站</p>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          <div v-for="platform in ['YouTube', 'Bilibili', 'TikTok', 'Instagram', 'Twitter / X', 'Facebook', 'Vimeo', '更多 1000+ 平台']" :key="platform"
+            class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700 text-center hover:border-blue-300 hover:bg-blue-50 transition-colors">
+            {{ platform }}
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- 套餐价格区块 -->
-    <section class="bg-white border-t border-gray-100">
+    <section id="pricing" class="bg-white border-t border-gray-100">
       <div class="max-w-4xl mx-auto px-6 py-16">
         <div class="text-center mb-10">
           <h2 class="text-2xl font-bold text-gray-900">套餐价格</h2>
