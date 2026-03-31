@@ -1,6 +1,8 @@
 import unittest
 from datetime import UTC, datetime, timedelta
 
+import test_env  # noqa: F401
+
 
 def utcnow_naive() -> datetime:
     return datetime.now(UTC).replace(tzinfo=None)

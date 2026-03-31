@@ -3,6 +3,7 @@
 """
 import unittest
 
+import test_env  # noqa: F401
 from app.routers.download import _safe_float
 from app.services.ytdlp_service import YTDLPService
 

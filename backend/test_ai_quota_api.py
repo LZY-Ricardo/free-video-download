@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
+import test_env  # noqa: F401
 from app.database import Base, SessionLocal, engine
 from app.db_models import User
 from app.main import app

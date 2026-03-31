@@ -3,6 +3,7 @@ backend/downloads/
 backend/image_cache/
 backend/models/
 backend/app.db
+backend/test_*.db
 
 # Local test media
 *.mp4

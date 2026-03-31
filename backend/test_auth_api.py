@@ -2,6 +2,7 @@ import unittest
 
 from fastapi.testclient import TestClient
 
+import test_env  # noqa: F401
 from app.database import Base, engine
 from app.main import app
 
@@ -63,7 +64,7 @@ class TestAuthAPI(unittest.TestCase):
 
         verify_response = self.client.get(f"/api/auth/verify-email?token={token}")
         self.assertEqual(verify_response.status_code, 200)
-        self.assertEqual(verify_response.json()["message"], "邮箱验证成功")
+        self.assertIn("verify=success", str(verify_response.url))
 
         login_response = self.client.post(
             "/api/auth/login",

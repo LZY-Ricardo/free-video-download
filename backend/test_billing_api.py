@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
+import test_env  # noqa: F401
 from app.config import settings
 from app.database import Base, SessionLocal, engine
 from app.db_models import MembershipOrder, User
