@@ -97,21 +97,41 @@ function renderCollectedPage(entry, alternates, breadcrumbs) {
   }
 }
 
-function buildSitemap(urls) {
-  const items = urls
-    .map((url) => `  <url>\n    <loc>${url}</loc>\n  </url>`)
+function buildSitemap(entries, lastmodDate) {
+  const items = entries
+    .map((entry) => {
+      const links = (entry.alternates || [])
+        .map(
+          (alt) =>
+            `    <xhtml:link rel="alternate" hreflang="${alt.hrefLang}" href="${toAbsoluteUrl(alt.path)}" />`,
+        )
+        .join('\n')
+      return `  <url>\n    <loc>${toAbsoluteUrl(entry.path)}</loc>\n    <lastmod>${lastmodDate}</lastmod>${
+        links ? `\n${links}` : ''
+      }\n  </url>`
+    })
     .join('\n')
 
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${items}\n</urlset>\n`
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${items}\n</urlset>\n`
 }
 
 function buildRobots() {
   return `User-agent: *\nAllow: /\n\nSitemap: ${toAbsoluteUrl('/sitemap.xml')}\n`
 }
 
-export function generateSiteFiles() {
+export function generateSiteFiles(options = {}) {
+  const lastmodDate = options.lastmodDate || new Date().toISOString().slice(0, 10)
   const pages = {}
-  const urls = [toAbsoluteUrl('/')]
+  const sitemapEntries = [
+    {
+      path: '/',
+      alternates: [
+        { hrefLang: 'zh-CN', path: '/zh/' },
+        { hrefLang: 'en', path: '/en/' },
+        { hrefLang: 'x-default', path: '/' },
+      ],
+    },
+  ]
 
   for (const entry of collectPages()) {
     const breadcrumbs = getBreadcrumbs(entry.locale, entry.page)
@@ -119,13 +139,12 @@ export function generateSiteFiles() {
     const outputPath = normalizeOutputPath(entry.page.path)
 
     pages[outputPath] = renderCollectedPage(entry, alternates, breadcrumbs)
-
-    urls.push(toAbsoluteUrl(entry.page.path))
+    sitemapEntries.push({ path: entry.page.path, alternates })
   }
 
   return {
     pages,
-    sitemap: buildSitemap(urls),
+    sitemap: buildSitemap(sitemapEntries, lastmodDate),
     robots: buildRobots(),
   }
 }

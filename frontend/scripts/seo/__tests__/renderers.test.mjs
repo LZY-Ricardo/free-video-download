@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { buildAlternateLinks, buildMetaTags } from '../renderers.mjs'
+import { buildAlternateLinks, buildJsonLdScripts, buildMetaTags } from '../renderers.mjs'
 
 test('buildMetaTags returns canonical and og tags for a zh page', () => {
   const html = buildMetaTags({
@@ -32,4 +32,21 @@ test('buildAlternateLinks returns zh and en hreflang links', () => {
 
   assert.match(html, /hreflang="zh-CN"/)
   assert.match(html, /hreflang="en"/)
+})
+
+test('buildMetaTags accepts custom og:type and json-ld scripts are not stringified twice', () => {
+  const meta = buildMetaTags({
+    locale: 'en',
+    path: '/en/answers/how-to/how-to-generate-ai-video-summary',
+    title: 'How to generate AI video summaries',
+    description: 'Test description',
+    keywords: ['VidGrab'],
+    ogType: 'article',
+  })
+  const scripts = buildJsonLdScripts([
+    '{"@context":"https://schema.org","@type":"WebPage","name":"Demo"}',
+  ])
+
+  assert.match(meta, /property="og:type" content="article"/)
+  assert.match(scripts, /<script type="application\/ld\+json">\{"@context":"https:\/\/schema.org","@type":"WebPage","name":"Demo"\}<\/script>/)
 })

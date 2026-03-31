@@ -28,6 +28,8 @@ test('renderFaqAnswerPage renders direct-answer intro and FAQ schema', () => {
 
   assert.match(html, /VidGrab 支持哪些平台？/)
   assert.match(html, /VidGrab 支持 YouTube、Bilibili、TikTok 和 Instagram。/)
+  assert.match(html, /<title>VidGrab 支持哪些平台？ - VidGrab \| AI 引用答案<\/title>/)
+  assert.doesNotMatch(html, /<script type="application\/ld\+json">"\{/)
   assert.match(html, /FAQPage/)
 })
 

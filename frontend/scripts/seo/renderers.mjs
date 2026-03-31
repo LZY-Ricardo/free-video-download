@@ -1,6 +1,6 @@
 import { SITE, toAbsoluteUrl } from './site-config.mjs'
 
-export function buildMetaTags({ locale, path, title, description, keywords, image }) {
+export function buildMetaTags({ locale, path, title, description, keywords, image, ogType = 'website' }) {
   const canonicalUrl = toAbsoluteUrl(path)
   const ogImage = toAbsoluteUrl(image || SITE.defaultOgImage)
   const kw = Array.isArray(keywords) ? keywords.join(',') : keywords
@@ -11,7 +11,7 @@ export function buildMetaTags({ locale, path, title, description, keywords, imag
     `<meta name="robots" content="index,follow" />`,
     `<meta property="og:title" content="${esc(title)}" />`,
     `<meta property="og:description" content="${esc(description)}" />`,
-    `<meta property="og:type" content="website" />`,
+    `<meta property="og:type" content="${esc(ogType)}" />`,
     `<meta property="og:url" content="${canonicalUrl}" />`,
     `<meta property="og:image" content="${ogImage}" />`,
     `<meta property="og:site_name" content="${SITE.brandName}" />`,
@@ -39,7 +39,12 @@ export function buildAlternateLinks(alternatesOrOptions) {
 }
 
 export function buildJsonLdScripts(jsonLds) {
-  return jsonLds.map(j => `<script type="application/ld+json">${JSON.stringify(j)}</script>`).join('\n    ')
+  return jsonLds
+    .map((j) => {
+      const payload = typeof j === 'string' ? j : JSON.stringify(j)
+      return `<script type="application/ld+json">${payload}</script>`
+    })
+    .join('\n    ')
 }
 
 export function buildBreadcrumbJsonLd(pageOrBreadcrumbs, breadcrumbsArg) {
