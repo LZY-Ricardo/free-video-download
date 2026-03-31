@@ -1,318 +1,169 @@
 import { SITE, toAbsoluteUrl } from './site-config.mjs'
 
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;')
-}
-
-function escapeJson(value) {
-  return JSON.stringify(value).replaceAll('</script', '<\\/script')
-}
-
-export function buildMetaTags(page) {
-  const canonicalUrl = toAbsoluteUrl(page.path)
-  const imageUrl = toAbsoluteUrl(page.image || SITE.defaultOgImage)
-  const keywords = page.keywords.join(', ')
-
+export function buildMetaTags({ locale, path, title, description, keywords, image }) {
+  const canonicalUrl = toAbsoluteUrl(path)
+  const ogImage = toAbsoluteUrl(image || SITE.defaultOgImage)
+  const kw = Array.isArray(keywords) ? keywords.join(',') : keywords
   return [
-    `<title>${escapeHtml(page.title)}</title>`,
-    `<meta name="description" content="${escapeHtml(page.description)}" />`,
-    `<meta name="keywords" content="${escapeHtml(keywords)}" />`,
-    '<meta name="robots" content="index, follow" />',
-    `<link rel="canonical" href="${escapeHtml(canonicalUrl)}" />`,
-    `<meta property="og:title" content="${escapeHtml(page.title)}" />`,
-    `<meta property="og:description" content="${escapeHtml(page.description)}" />`,
-    `<meta property="og:type" content="${escapeHtml(page.ogType || 'website')}" />`,
-    `<meta property="og:url" content="${escapeHtml(canonicalUrl)}" />`,
-    `<meta property="og:image" content="${escapeHtml(imageUrl)}" />`,
-    `<meta property="og:site_name" content="${escapeHtml(SITE.brandName)}" />`,
-    `<meta property="og:locale" content="${escapeHtml(page.locale)}" />`,
-    '<meta name="twitter:card" content="summary_large_image" />',
-    `<meta name="twitter:title" content="${escapeHtml(page.title)}" />`,
-    `<meta name="twitter:description" content="${escapeHtml(page.description)}" />`,
-    `<meta name="twitter:image" content="${escapeHtml(imageUrl)}" />`,
-  ].join('\n')
+    `<link rel="canonical" href="${canonicalUrl}" />`,
+    `<meta name="description" content="${esc(description)}" />`,
+    `<meta name="keywords" content="${esc(kw)}" />`,
+    `<meta name="robots" content="index,follow" />`,
+    `<meta property="og:title" content="${esc(title)}" />`,
+    `<meta property="og:description" content="${esc(description)}" />`,
+    `<meta property="og:type" content="website" />`,
+    `<meta property="og:url" content="${canonicalUrl}" />`,
+    `<meta property="og:image" content="${ogImage}" />`,
+    `<meta property="og:site_name" content="${SITE.brandName}" />`,
+    `<meta name="twitter:card" content="summary_large_image" />`,
+    `<meta name="twitter:title" content="${esc(title)}" />`,
+    `<meta name="twitter:description" content="${esc(description)}" />`,
+    `<meta name="twitter:image" content="${ogImage}" />`,
+  ].join('\n    ')
 }
 
-export function buildAlternateLinks(alternates) {
-  return alternates
-    .map((alternate) => `<link rel="alternate" hreflang="${escapeHtml(alternate.hrefLang)}" href="${escapeHtml(toAbsoluteUrl(alternate.path))}" />`)
-    .join('\n')
-}
-
-export function buildJsonLdScripts(items) {
-  return items
-    .map((item) => `<script type="application/ld+json">${escapeJson(item)}</script>`)
-    .join('\n')
-}
-
-export function buildBreadcrumbJsonLd(page, breadcrumbs) {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: breadcrumbs.map((breadcrumb, index) => ({
-      '@type': 'ListItem',
-      position: index + 1,
-      name: breadcrumb.label,
-      item: toAbsoluteUrl(breadcrumb.path),
-    })),
+export function buildAlternateLinks(alternatesOrOptions) {
+  if (Array.isArray(alternatesOrOptions)) {
+    return alternatesOrOptions
+      .map(a => `<link rel="alternate" hreflang="${a.hrefLang}" href="${toAbsoluteUrl(a.path)}" />`)
+      .join('\n    ')
   }
+  const { currentPath, alternatePath } = alternatesOrOptions
+  const zhPath = currentPath.startsWith('/zh/') ? currentPath : alternatePath
+  const enPath = currentPath.startsWith('/en/') ? currentPath : alternatePath
+  return [
+    `<link rel="alternate" hreflang="zh-CN" href="${toAbsoluteUrl(zhPath)}" />`,
+    `<link rel="alternate" hreflang="en" href="${toAbsoluteUrl(enPath)}" />`,
+    `<link rel="alternate" hreflang="x-default" href="${toAbsoluteUrl('/')}" />`,
+  ].join('\n    ')
 }
 
-export function buildFaqJsonLd(page) {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: page.faqs.map((faq) => ({
-      '@type': 'Question',
-      name: faq.question,
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: faq.answer,
-      },
-    })),
-  }
+export function buildJsonLdScripts(jsonLds) {
+  return jsonLds.map(j => `<script type="application/ld+json">${JSON.stringify(j)}</script>`).join('\n    ')
 }
 
-export function buildWebPageJsonLd(page) {
-  return {
+export function buildBreadcrumbJsonLd(pageOrBreadcrumbs, breadcrumbsArg) {
+  const breadcrumbs = Array.isArray(pageOrBreadcrumbs) ? pageOrBreadcrumbs : (breadcrumbsArg || [])
+  const items = breadcrumbs.map((b, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    name: b.label,
+    item: toAbsoluteUrl(b.path),
+  }))
+  return JSON.stringify({ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: items }, null, 2)
+}
+
+export function buildWebPageJsonLd({ title, description, path }) {
+  return JSON.stringify({
     '@context': 'https://schema.org',
     '@type': 'WebPage',
-    name: page.title,
-    description: page.description,
-    url: toAbsoluteUrl(page.path),
-    inLanguage: page.locale,
-  }
+    name: title,
+    description,
+    url: toAbsoluteUrl(path),
+  }, null, 2)
 }
 
-export function buildHomeJsonLd() {
-  const website = {
+function buildFaqJsonLd(faqs) {
+  return JSON.stringify({
     '@context': 'https://schema.org',
-    '@type': 'WebSite',
-    name: SITE.brandName,
-    url: SITE.baseUrl,
-    description: SITE.productTagline,
-  }
-
-  const organization = {
-    '@context': 'https://schema.org',
-    '@type': 'Organization',
-    name: SITE.brandName,
-    url: SITE.baseUrl,
-    logo: toAbsoluteUrl(SITE.defaultOgImage),
-  }
-
-  const webApp = {
-    '@context': 'https://schema.org',
-    '@type': 'WebApplication',
-    name: SITE.brandName,
-    applicationCategory: 'MultimediaApplication',
-    operatingSystem: 'Web',
-    url: SITE.baseUrl,
-    description: 'Download public videos, export transcripts, and generate AI summaries in one workflow.',
-  }
-
-  return [website, organization, webApp]
+    '@type': 'FAQPage',
+    mainEntity: faqs.map(f => ({
+      '@type': 'Question',
+      name: f.q,
+      acceptedAnswer: { '@type': 'Answer', text: f.a },
+    })),
+  }, null, 2)
 }
 
-function renderSection(section) {
-  return `
-    <section class="seo-section">
-      <h2>${escapeHtml(section.title)}</h2>
-      ${section.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join('\n')}
-    </section>
-  `
+function esc(str) {
+  return String(str).replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
-function renderRelatedLinks(links) {
-  if (!links?.length) {
-    return ''
-  }
-
-  return `
-    <section class="seo-section">
-      <h2>Related Pages</h2>
-      <ul class="seo-link-list">
-        ${links.map((link) => `<li><a href="${escapeHtml(link.path)}">${escapeHtml(link.label)}</a></li>`).join('\n')}
-      </ul>
-    </section>
-  `
-}
-
-function renderFaqBlock(page) {
-  if (!page.faqs?.length) {
-    return ''
-  }
-
-  return `
-    <section class="seo-section">
-      <h2>${page.locale === 'zh-CN' ? '常见问题' : 'Frequently asked questions'}</h2>
-      <div class="faq-list">
-        ${page.faqs
-          .map(
-            (faq) => `
-              <article class="faq-item">
-                <h3>${escapeHtml(faq.question)}</h3>
-                <p>${escapeHtml(faq.answer)}</p>
-              </article>
-            `,
-          )
-          .join('\n')}
-      </div>
-    </section>
-  `
-}
-
-export function renderSeoPage({
-  locale,
-  page,
-  alternates,
-  breadcrumbs,
-}) {
-  const jsonLdItems = [
-    buildWebPageJsonLd({ ...page, locale }),
-    buildBreadcrumbJsonLd({ ...page, locale }, breadcrumbs),
-  ]
-
-  if (page.faqs?.length) {
-    jsonLdItems.push(buildFaqJsonLd(page))
-  }
-
-  const ctaText = locale === 'zh-CN' ? '返回首页开始使用 VidGrab' : 'Go to the homepage and start using VidGrab'
-  const relatedHeading = locale === 'zh-CN' ? '相关页面' : 'Related Pages'
-
+function baseHtml({ locale, title, metaTags, alternateLinks, jsonLds, body }) {
+  const lang = locale === 'zh-CN' ? 'zh-CN' : 'en'
+  const jsonLdBlocks = jsonLds.map(j => `<script type="application/ld+json">${j}</script>`).join('\n    ')
   return `<!doctype html>
-<html lang="${locale === 'zh-CN' ? 'zh-CN' : 'en'}">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    ${buildMetaTags({
-      ...page,
-      locale,
-      ogType: page.faqs?.length ? 'article' : 'website',
-    })}
-    ${buildAlternateLinks(alternates)}
-    ${buildJsonLdScripts(jsonLdItems)}
-    <style>
-      :root {
-        color-scheme: light;
-        --bg: #f8fafc;
-        --card: #ffffff;
-        --text: #0f172a;
-        --muted: #475569;
-        --border: #e2e8f0;
-        --accent: #1777ff;
-      }
-      * { box-sizing: border-box; }
-      body {
-        margin: 0;
-        font-family: "Outfit", "PingFang SC", "Microsoft YaHei", sans-serif;
-        background: var(--bg);
-        color: var(--text);
-      }
-      a { color: var(--accent); text-decoration: none; }
-      a:hover { text-decoration: underline; }
-      .page {
-        max-width: 960px;
-        margin: 0 auto;
-        padding: 48px 20px 80px;
-      }
-      .hero, .seo-section, .cta-card {
-        background: var(--card);
-        border: 1px solid var(--border);
-        border-radius: 20px;
-        padding: 28px;
-        margin-bottom: 20px;
-      }
-      .eyebrow {
-        display: inline-flex;
-        align-items: center;
-        border-radius: 999px;
-        background: #eff6ff;
-        color: #1d4ed8;
-        font-size: 12px;
-        font-weight: 600;
-        padding: 6px 12px;
-        margin-bottom: 16px;
-      }
-      h1 {
-        font-size: clamp(2rem, 5vw, 3.25rem);
-        line-height: 1.1;
-        margin: 0 0 12px;
-      }
-      h2 {
-        font-size: 1.25rem;
-        margin: 0 0 12px;
-      }
-      h3 {
-        font-size: 1rem;
-        margin: 0 0 8px;
-      }
-      p, li {
-        color: var(--muted);
-        font-size: 1rem;
-        line-height: 1.75;
-      }
-      .breadcrumbs {
-        font-size: 14px;
-        color: var(--muted);
-        margin-bottom: 16px;
-      }
-      .seo-link-list {
-        margin: 0;
-        padding-left: 20px;
-      }
-      .cta-card {
-        display: flex;
-        flex-direction: column;
-        gap: 14px;
-      }
-      .cta-link {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: fit-content;
-        min-width: 220px;
-        padding: 12px 18px;
-        border-radius: 999px;
-        background: var(--accent);
-        color: #ffffff;
-        font-weight: 600;
-      }
-      .faq-list {
-        display: grid;
-        gap: 16px;
-      }
-    </style>
-  </head>
-  <body>
-    <main class="page">
-      <nav class="breadcrumbs">
-        ${breadcrumbs.map((breadcrumb) => `<a href="${escapeHtml(breadcrumb.path)}">${escapeHtml(breadcrumb.label)}</a>`).join(' / ')}
-      </nav>
-      <section class="hero">
-        <span class="eyebrow">${escapeHtml(SITE.brandName)}</span>
-        <h1>${escapeHtml(page.h1)}</h1>
-        <p>${escapeHtml(page.intro)}</p>
-      </section>
-      ${page.sections.map((section) => renderSection(section)).join('\n')}
-      ${page.faqs?.length ? renderFaqBlock(page) : ''}
-      <section class="seo-section">
-        <h2>${escapeHtml(relatedHeading)}</h2>
-        <ul class="seo-link-list">
-          ${page.relatedLinks.map((link) => `<li><a href="${escapeHtml(link.path)}">${escapeHtml(link.label)}</a></li>`).join('\n')}
-        </ul>
-      </section>
-      <section class="cta-card">
-        <h2>${locale === 'zh-CN' ? '开始使用 VidGrab' : 'Start with VidGrab'}</h2>
-        <p>${locale === 'zh-CN' ? '回到工具首页，粘贴公开视频链接，继续完成下载、字幕导出或 AI 总结。' : 'Return to the main tool, paste a public video URL, and continue with download, transcript export, or AI summary.'}</p>
-        <a class="cta-link" href="/">${escapeHtml(ctaText)}</a>
-      </section>
-    </main>
-  </body>
+<html lang="${lang}">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${esc(title)}</title>
+  ${metaTags}
+  ${alternateLinks}
+  ${jsonLdBlocks}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Outfit,'PingFang SC','Microsoft YaHei',sans-serif;background:#f8fafc;color:#0f172a;line-height:1.7}
+    .wrap{max-width:860px;margin:0 auto;padding:32px 20px}
+    nav.bc{font-size:13px;color:#64748b;margin-bottom:24px}
+    nav.bc a{color:#1d4ed8;text-decoration:none}nav.bc span{margin:0 6px}
+    h1{font-size:clamp(22px,4vw,34px);font-weight:700;margin-bottom:16px;color:#0f172a}
+    h2{font-size:18px;font-weight:600;margin:28px 0 10px;color:#1e293b}
+    h3{font-size:15px;font-weight:600;margin:18px 0 6px}
+    p{margin-bottom:12px;color:#334155}
+    ul,ol{padding-left:20px;margin-bottom:12px}
+    li{margin-bottom:6px;color:#334155}
+    .cta{display:inline-block;margin-top:24px;padding:12px 28px;background:#1d4ed8;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px}
+    .cta:hover{background:#1e40af}
+    .card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:12px}
+    .links{margin-top:32px;display:flex;flex-wrap:wrap;gap:12px}
+    .links a{color:#1d4ed8;text-decoration:none;font-size:14px;padding:6px 14px;border:1px solid #bfdbfe;border-radius:6px}
+    table{width:100%;border-collapse:collapse;margin-bottom:16px}
+    th,td{padding:10px 14px;border:1px solid #e2e8f0;font-size:14px;text-align:left}
+    th{background:#f1f5f9;font-weight:600}
+    header.site-header{background:#fff;border-bottom:1px solid #e2e8f0;padding:12px 20px;display:flex;align-items:center;gap:12px}
+    header.site-header a{color:#0f172a;text-decoration:none;font-weight:700;font-size:18px}
+    footer.site-footer{margin-top:48px;border-top:1px solid #e2e8f0;padding:24px 20px;text-align:center;font-size:13px;color:#94a3b8}
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <a href="/">&#9654; VidGrab</a>
+  </header>
+  <div class="wrap">
+    ${body}
+  </div>
+  <footer class="site-footer">© 2026 VidGrab · <a href="/" style="color:#1d4ed8">返回首页</a></footer>
+</body>
 </html>`
+}
+
+function renderBreadcrumb(breadcrumbs) {
+  const parts = breadcrumbs.map((b, i) =>
+    i < breadcrumbs.length - 1
+      ? `<a href="${b.path}">${b.label}</a><span>/</span>`
+      : `<span>${b.label}</span>`
+  ).join(' ')
+  return `<nav class="bc" aria-label="breadcrumb">${parts}</nav>`
+}
+
+export function renderSeoPage({ locale, page, alternates, breadcrumbs }) {
+  const isZh = locale === 'zh-CN'
+  const metaTags = buildMetaTags({ locale, path: page.path, title: page.title, description: page.description, keywords: page.keywords })
+  const alternateLinks = buildAlternateLinks({
+    currentPath: page.path,
+    alternatePath: alternates.find(a => a.hrefLang !== locale && a.hrefLang !== 'x-default')?.path || page.path,
+  })
+  const jsonLds = [
+    buildWebPageJsonLd({ title: page.title, description: page.description, path: page.path }),
+    buildBreadcrumbJsonLd(breadcrumbs),
+  ]
+  if (page.faqs) jsonLds.push(buildFaqJsonLd(page.faqs))
+
+  const relatedLinks = (page.related || []).map(r => `<a href="${r.path}">${r.label}</a>`).join('')
+  const faqHtml = page.faqs ? `<h2>${isZh ? '常见问题' : 'FAQ'}</h2>` + page.faqs.map(f =>
+    `<div class="card"><h3>${f.q}</h3><p>${f.a}</p></div>`
+  ).join('') : ''
+
+  const body = `
+    ${renderBreadcrumb(breadcrumbs)}
+    <h1>${page.h1}</h1>
+    ${(page.sections || []).map(s => `<h2>${s.heading}</h2>${s.paragraphs.map(p => `<p>${p}</p>`).join('')}${(s.items || []).length ? '<ul>' + s.items.map(i => `<li>${i}</li>`).join('') + '</ul>' : ''}`).join('')}
+    ${faqHtml}
+    ${relatedLinks ? `<div class="links">${relatedLinks}</div>` : ''}
+    <a class="cta" href="/">${isZh ? '立即使用 VidGrab' : 'Try VidGrab Now'}</a>
+  `
+  return baseHtml({ locale, title: page.title, metaTags, alternateLinks, jsonLds, body })
 }

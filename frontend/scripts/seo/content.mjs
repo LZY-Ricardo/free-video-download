@@ -1,319 +1,317 @@
-const zhHomeSections = [
-  {
-    title: '为什么使用 VidGrab',
-    paragraphs: [
-      'VidGrab 将视频下载、字幕提取和 AI 视频总结整合到一个轻量工具里，帮助学习者和内容创作者更快获取关键信息。',
-      '你可以用同一个入口完成链接解析、格式选择、字幕下载和智能问答，减少在多个工具之间切换的成本。',
-    ],
-  },
-  {
-    title: '适合哪些场景',
-    paragraphs: [
-      '适合课程复盘、素材收集、跨平台视频保存、长视频要点提炼，以及把公开视频整理成可搜索的学习资料。',
-    ],
-  },
-  {
-    title: '如何开始',
-    paragraphs: [
-      '把视频链接粘贴到首页，解析视频后即可选择下载格式，或直接使用 AI 学习助手生成摘要、字幕和思维导图。',
-    ],
-  },
-]
-
-const enHomeSections = [
-  {
-    title: 'Why use VidGrab',
-    paragraphs: [
-      'VidGrab combines video downloading, subtitle extraction, and AI summarization in one lightweight workflow for learners and creators.',
-      'Paste a link once and keep moving from parsing to download, transcript export, and AI Q&A without switching tools.',
-    ],
-  },
-  {
-    title: 'Common use cases',
-    paragraphs: [
-      'Use VidGrab for lecture review, research clipping, creator asset collection, and turning long-form videos into searchable notes.',
-    ],
-  },
-  {
-    title: 'How it works',
-    paragraphs: [
-      'Paste a public video URL on the homepage, inspect the available formats, then download the file or launch the AI assistant for summaries and transcripts.',
-    ],
-  },
-]
-
-function makePlatformPage(locale, slug, title, platformName, featureLinks) {
-  const isZh = locale === 'zh-CN'
-
-  return {
-    slug,
-    path: `/${isZh ? 'zh' : 'en'}/platforms/${slug}`,
-    title: isZh
-      ? `${platformName} 视频下载器 - VidGrab | 在线解析、下载与 AI 总结`
-      : `${platformName} Video Downloader - VidGrab | Download, Transcript and AI Summary`,
-    description: isZh
-      ? `使用 VidGrab 在线解析 ${platformName} 视频，支持视频下载、字幕提取、音频保存和 AI 内容总结，帮助你更高效整理学习与创作素材。`
-      : `Use VidGrab to download ${platformName} videos online, export subtitles, save audio, and generate AI summaries for study and creator workflows.`,
-    keywords: isZh
-      ? [`${platformName} 视频下载器`, `${platformName} 下载`, `${platformName} 字幕下载`, '视频总结', 'VidGrab']
-      : [`${platformName} downloader`, `${platformName} transcript`, `${platformName} video summary`, 'video downloader', 'VidGrab'],
-    h1: isZh ? `${platformName} 视频下载与 AI 总结工具` : `${platformName} video downloader and AI summarizer`,
-    intro: isZh
-      ? `VidGrab 为 ${platformName} 视频提供下载、转录和内容总结能力，适合学习、存档和创作整理。`
-      : `VidGrab helps you download, transcribe, and summarize ${platformName} videos for learning, archiving, and content workflows.`,
-    sections: isZh
-      ? [
-          {
-            title: `VidGrab 如何支持 ${platformName}`,
-            paragraphs: [
-              `你可以用 VidGrab 解析 ${platformName} 链接，查看可用格式，并在一个界面中继续完成字幕下载和 AI 摘要。`,
-            ],
-          },
-          {
-            title: '使用步骤',
-            paragraphs: [
-              '复制公开视频链接，打开首页粘贴并解析，确认视频信息后选择下载或进入 AI 学习助手。',
-            ],
-          },
-          {
-            title: '常见使用场景',
-            paragraphs: [
-              '适合整理课程、保存素材、提取字幕、生成章节总结和复盘公开视频内容。',
-            ],
-          },
-        ]
-      : [
-          {
-            title: `What you can do with ${platformName} on VidGrab`,
-            paragraphs: [
-              `Paste a public ${platformName} link into VidGrab to inspect available formats, export subtitles, and keep moving into AI summaries.`,
-            ],
-          },
-          {
-            title: 'How to use it',
-            paragraphs: [
-              'Copy a public video URL, open the homepage, paste the link, review the parsed video information, then download or launch the AI assistant.',
-            ],
-          },
-          {
-            title: 'Best-fit workflows',
-            paragraphs: [
-              'Use it for study notes, archive-friendly backups, transcript exports, and turning long videos into searchable knowledge.',
-            ],
-          },
-        ],
-    relatedLinks: featureLinks,
-  }
-}
-
-function makeFeaturePage(locale, slug, title, featureName, relatedPlatformLinks) {
-  const isZh = locale === 'zh-CN'
-
-  return {
-    slug,
-    path: `/${isZh ? 'zh' : 'en'}/features/${slug}`,
-    title: isZh
-      ? `${featureName} - VidGrab | 视频下载与 AI 学习助手`
-      : `${featureName} - VidGrab | Video Downloader and AI Study Assistant`,
-    description: isZh
-      ? `通过 VidGrab 使用 ${featureName}，快速完成视频保存、字幕导出和内容提炼，适合学习者、研究者和内容创作者。`
-      : `Use VidGrab for ${featureName}, from downloading public videos to exporting transcripts and turning long content into concise notes.`,
-    keywords: isZh
-      ? [featureName, '视频下载', '字幕下载', 'AI 总结', 'VidGrab']
-      : [featureName, 'video downloader', 'subtitle export', 'AI summary', 'VidGrab'],
-    h1: isZh ? `${featureName}，为视频学习与整理提效` : `${featureName} for faster video workflows`,
-    intro: isZh
-      ? `${featureName} 是 VidGrab 的核心能力之一，帮助你把公开视频转化成更容易保存、阅读和复盘的资料。`
-      : `${featureName} is one of VidGrab's core workflows for turning public videos into downloadable, searchable, and review-friendly assets.`,
-    sections: isZh
-      ? [
-          {
-            title: '这个功能解决什么问题',
-            paragraphs: [
-              '当你需要从公开视频里提取重点、保留证据链或整理课程内容时，这个能力可以减少手工整理时间。',
-            ],
-          },
-          {
-            title: '如何使用',
-            paragraphs: [
-              '从首页解析视频后，根据你的目标选择下载、字幕导出或 AI 总结入口，整个流程保持在一个页面完成。',
-            ],
-          },
-          {
-            title: '适合哪些人',
-            paragraphs: [
-              '适合学生、研究者、运营、剪辑师和需要管理公开视频资料的团队。',
-            ],
-          },
-        ]
-      : [
-          {
-            title: 'What problem this solves',
-            paragraphs: [
-              'This workflow helps when you need to save public videos, extract evidence, or turn long recordings into concise notes and searchable transcripts.',
-            ],
-          },
-          {
-            title: 'How to use it',
-            paragraphs: [
-              'Parse a video on the homepage, then choose download, subtitle export, or AI summary based on the outcome you need.',
-            ],
-          },
-          {
-            title: 'Who it is for',
-            paragraphs: [
-              'Students, researchers, operators, editors, and teams that need to manage public video references efficiently.',
-            ],
-          },
-        ],
-    relatedLinks: relatedPlatformLinks,
-  }
-}
-
-function makeFaqPage(locale, relatedLinks) {
-  const isZh = locale === 'zh-CN'
-  return {
-    slug: 'faq',
-    path: `/${isZh ? 'zh' : 'en'}/faq`,
-    title: isZh
-      ? '常见问题 - VidGrab | 视频下载与 AI 总结 FAQ'
-      : 'FAQ - VidGrab | Video Downloader and AI Summary Questions',
-    description: isZh
-      ? '查看 VidGrab 的常见问题，包括支持的平台、字幕导出、AI 总结、公开视频使用方式和工具页入口。'
-      : 'Read common VidGrab questions about supported platforms, transcript export, AI summaries, public video usage, and the main tool workflow.',
-    keywords: isZh
-      ? ['VidGrab 常见问题', '视频下载 FAQ', 'AI 视频总结', '字幕导出', 'VidGrab']
-      : ['VidGrab FAQ', 'video downloader FAQ', 'AI video summary', 'subtitle export', 'VidGrab'],
-    h1: isZh ? 'VidGrab 常见问题' : 'VidGrab frequently asked questions',
-    intro: isZh
-      ? '以下问题帮助你快速了解 VidGrab 能做什么，以及如何把工具用于学习和内容整理。'
-      : 'These answers explain what VidGrab can do and how to use it for study, archiving, and creator workflows.',
-    sections: [],
-    relatedLinks,
-    faqs: isZh
-      ? [
-          {
-            question: 'VidGrab 支持哪些平台？',
-            answer: '当前首批 SEO 页面覆盖 YouTube、Bilibili、TikTok 和 Instagram，工具页也支持更多公开视频平台的解析流程。',
-          },
-          {
-            question: '除了下载视频，还能做什么？',
-            answer: '你可以导出字幕、查看 AI 摘要、浏览章节要点、生成思维导图，并围绕视频内容进行问答。',
-          },
-          {
-            question: '我该从哪里开始使用？',
-            answer: '直接访问首页，把公开视频链接粘贴到输入框里解析，然后按你的目标选择下载或 AI 学习助手。',
-          },
-        ]
-      : [
-          {
-            question: 'Which platforms does VidGrab support?',
-            answer: 'The first SEO rollout highlights YouTube, Bilibili, TikTok, and Instagram, while the main tool flow can parse additional public video sources.',
-          },
-          {
-            question: 'Can VidGrab do more than downloading videos?',
-            answer: 'Yes. You can export subtitles, read AI summaries, browse chapter-level takeaways, view a mind map, and ask questions about the video.',
-          },
-          {
-            question: 'Where should I start?',
-            answer: 'Open the homepage, paste a public video URL into the input box, parse the video, and continue with download or AI tools based on your goal.',
-          },
-        ],
-  }
-}
-
-const zhFeatureLinks = [
-  { path: '/zh/features/video-downloader', label: '视频下载' },
-  { path: '/zh/features/audio-extractor', label: '音频提取' },
-  { path: '/zh/features/subtitle-downloader', label: '字幕下载' },
-  { path: '/zh/features/ai-video-summarizer', label: 'AI 视频总结' },
-  { path: '/zh/answers/', label: '答案中心' },
-]
-
-const enFeatureLinks = [
-  { path: '/en/features/video-downloader', label: 'Video Downloader' },
-  { path: '/en/features/audio-extractor', label: 'Audio Extractor' },
-  { path: '/en/features/subtitle-downloader', label: 'Subtitle Downloader' },
-  { path: '/en/features/ai-video-summarizer', label: 'AI Video Summarizer' },
-  { path: '/en/answers/', label: 'Answers Hub' },
-]
-
-const zhPlatformLinks = [
-  { path: '/zh/platforms/youtube', label: 'YouTube 下载' },
-  { path: '/zh/platforms/bilibili', label: 'Bilibili 下载' },
-  { path: '/zh/platforms/tiktok', label: 'TikTok 下载' },
-  { path: '/zh/platforms/instagram', label: 'Instagram 下载' },
-]
-
-const enPlatformLinks = [
-  { path: '/en/platforms/youtube', label: 'YouTube Downloader' },
-  { path: '/en/platforms/bilibili', label: 'Bilibili Downloader' },
-  { path: '/en/platforms/tiktok', label: 'TikTok Downloader' },
-  { path: '/en/platforms/instagram', label: 'Instagram Downloader' },
-]
-
-const zhPlatformPages = [
-  makePlatformPage('zh-CN', 'youtube', 'YouTube 视频下载器', 'YouTube', zhFeatureLinks),
-  makePlatformPage('zh-CN', 'bilibili', 'Bilibili 视频下载器', 'Bilibili', zhFeatureLinks),
-  makePlatformPage('zh-CN', 'tiktok', 'TikTok 视频下载器', 'TikTok', zhFeatureLinks),
-  makePlatformPage('zh-CN', 'instagram', 'Instagram 视频下载器', 'Instagram', zhFeatureLinks),
-]
-
-const enPlatformPages = [
-  makePlatformPage('en', 'youtube', 'YouTube Video Downloader', 'YouTube', enFeatureLinks),
-  makePlatformPage('en', 'bilibili', 'Bilibili Video Downloader', 'Bilibili', enFeatureLinks),
-  makePlatformPage('en', 'tiktok', 'TikTok Video Downloader', 'TikTok', enFeatureLinks),
-  makePlatformPage('en', 'instagram', 'Instagram Video Downloader', 'Instagram', enFeatureLinks),
-]
-
-const zhFeaturePages = [
-  makeFeaturePage('zh-CN', 'video-downloader', '视频下载', '视频下载', zhPlatformLinks),
-  makeFeaturePage('zh-CN', 'audio-extractor', '音频提取', '音频提取', zhPlatformLinks),
-  makeFeaturePage('zh-CN', 'subtitle-downloader', '字幕下载', '字幕下载', zhPlatformLinks),
-  makeFeaturePage('zh-CN', 'ai-video-summarizer', 'AI 视频总结', 'AI 视频总结', zhPlatformLinks),
-]
-
-const enFeaturePages = [
-  makeFeaturePage('en', 'video-downloader', 'Video Downloader', 'Video Downloader', enPlatformLinks),
-  makeFeaturePage('en', 'audio-extractor', 'Audio Extractor', 'Audio Extractor', enPlatformLinks),
-  makeFeaturePage('en', 'subtitle-downloader', 'Subtitle Downloader', 'Subtitle Downloader', enPlatformLinks),
-  makeFeaturePage('en', 'ai-video-summarizer', 'AI Video Summarizer', 'AI Video Summarizer', enPlatformLinks),
-]
-
-const zhFaqPage = makeFaqPage('zh-CN', [...zhPlatformLinks, ...zhFeatureLinks])
-const enFaqPage = makeFaqPage('en', [...enPlatformLinks, ...enFeatureLinks])
-
 export const seoContent = {
   zh: {
     hub: {
-      slug: 'index',
       path: '/zh/',
-      title: '视频下载与 AI 总结工具 - VidGrab | 中文版入口',
-      description: 'VidGrab 中文入口聚合了视频下载、字幕导出、AI 总结、平台支持页和常见问题，帮助你更快找到合适的公开视频工作流。',
-      keywords: ['视频下载工具', 'AI 视频总结', '字幕下载', '公开视频下载', 'VidGrab'],
-      h1: 'VidGrab 中文视频下载与 AI 总结入口',
-      intro: '这里汇总了 VidGrab 的中文平台页、功能页与常见问题，帮助你从搜索结果快速进入正确的工具场景。',
-      sections: zhHomeSections,
-      relatedLinks: [...zhPlatformLinks, ...zhFeatureLinks, { path: '/zh/faq', label: '常见问题' }],
+      title: '视频下载与 AI 总结工具 - VidGrab | 中文入口',
+      description: 'VidGrab 提供在线视频下载、字幕导出、音频提取和 AI 视频总结，支持 YouTube、Bilibili、TikTok 等 1000+ 平台。',
+      keywords: ['视频下载', 'AI 视频总结', '字幕下载', 'YouTube 下载', 'Bilibili 下载', 'VidGrab'],
+      h1: 'VidGrab 视频下载与 AI 总结工具',
+      sections: [
+        { heading: '核心功能', paragraphs: ['VidGrab 让你一站完成视频下载、字幕导出和 AI 内容总结。'], items: ['在线视频下载（MP4/MP3/WebM）', 'AI 视频总结与章节摘要', '字幕导出（SRT/VTT/TXT）', '思维导图可视化', 'AI 流式问答'] },
+        { heading: '支持平台', paragraphs: ['基于 yt-dlp 构建，支持全球 1000+ 视频平台。'], items: ['YouTube', 'Bilibili', 'TikTok', 'Instagram', 'Twitter / X', 'Facebook', 'Vimeo'] },
+      ],
+      related: [
+        { path: '/zh/platforms/youtube', label: 'YouTube 下载器' },
+        { path: '/zh/platforms/bilibili', label: 'Bilibili 下载器' },
+        { path: '/zh/features/ai-video-summarizer', label: 'AI 视频总结' },
+        { path: '/zh/faq', label: '常见问题' },
+        { path: '/en/', label: 'English Hub' },
+      ],
     },
-    platforms: zhPlatformPages,
-    features: zhFeaturePages,
-    faq: zhFaqPage,
+    platforms: [
+      {
+        path: '/zh/platforms/youtube',
+        title: 'YouTube 视频下载器 - VidGrab | 在线解析与 AI 总结',
+        description: '用 VidGrab 下载 YouTube 公开视频，支持 MP4/MP3 多清晰度，并可一键生成 AI 总结与字幕导出。',
+        keywords: ['YouTube 下载器', 'YouTube 视频下载', 'YouTube MP4', 'YouTube 字幕下载', 'VidGrab'],
+        h1: 'YouTube 视频下载器',
+        sections: [
+          { heading: '支持的能力', paragraphs: ['VidGrab 支持解析 YouTube 公开视频链接，提供多种格式与清晰度下载选项。'], items: ['MP4 视频下载（1080p/720p/480p）', 'MP3 音频提取', '字幕文件下载（SRT/VTT/TXT）', 'AI 视频总结与问答'] },
+          { heading: '使用步骤', paragraphs: [''], items: ['复制 YouTube 视频链接', '粘贴到 VidGrab 输入框', '选择格式与清晰度', '点击下载或生成 AI 总结'] },
+          { heading: '适用场景', paragraphs: ['适合学习复盘、课程整理、素材收集和离线观看。'] },
+        ],
+        faqs: [
+          { q: 'VidGrab 支持下载 YouTube 会员内容吗？', a: '不支持，VidGrab 只能下载公开可访问的视频内容。' },
+          { q: '下载 YouTube 视频需要登录吗？', a: '不需要，粘贴公开链接即可直接下载。' },
+        ],
+        related: [{ path: '/zh/platforms/bilibili', label: 'Bilibili 下载器' }, { path: '/zh/features/ai-video-summarizer', label: 'AI 总结' }, { path: '/zh/', label: '返回中文入口' }],
+      },
+      {
+        path: '/zh/platforms/bilibili',
+        title: 'Bilibili 视频下载器 - VidGrab | B站视频在线下载',
+        description: '用 VidGrab 下载 Bilibili 公开视频，支持多清晰度 MP4 下载，并可生成 AI 摘要与导出字幕。',
+        keywords: ['Bilibili 下载', 'B站视频下载', 'Bilibili MP4', 'B站字幕', 'VidGrab'],
+        h1: 'Bilibili 视频下载器',
+        sections: [
+          { heading: '支持的能力', paragraphs: ['VidGrab 支持解析 Bilibili 公开视频，提供 MP4 多清晰度和音频下载。'], items: ['MP4 视频下载', 'MP3 音频提取', '字幕/CC 文件导出', 'AI 视频总结'] },
+          { heading: '使用步骤', paragraphs: [''], items: ['复制 Bilibili 视频链接', '粘贴到 VidGrab 输入框', '选择格式', '点击下载'] },
+          { heading: '适用场景', paragraphs: ['适合整理 B 站学习视频、收藏科普内容和提取音频。'] },
+        ],
+        faqs: [
+          { q: 'VidGrab 支持下载 B 站大会员内容吗？', a: '不支持，只能下载无需登录即可观看的公开视频。' },
+          { q: '能下载 B 站合集吗？', a: '目前支持单个视频下载，批量下载功能正在规划中。' },
+        ],
+        related: [{ path: '/zh/platforms/youtube', label: 'YouTube 下载器' }, { path: '/zh/platforms/tiktok', label: 'TikTok 下载器' }, { path: '/zh/', label: '返回中文入口' }],
+      },
+      {
+        path: '/zh/platforms/tiktok',
+        title: 'TikTok 视频下载器 - VidGrab | 在线下载',
+        description: '用 VidGrab 下载 TikTok 公开视频，支持 MP4 格式，可提取音频或生成 AI 内容总结。',
+        keywords: ['TikTok 下载', 'TikTok 视频下载', 'VidGrab'],
+        h1: 'TikTok 视频下载器',
+        sections: [
+          { heading: '支持的能力', paragraphs: ['VidGrab 支持解析 TikTok 公开视频链接，提供 MP4 下载和音频提取。'], items: ['MP4 视频下载', 'MP3 音频提取', 'AI 内容总结'] },
+          { heading: '使用步骤', paragraphs: [''], items: ['复制 TikTok 视频链接', '粘贴到 VidGrab', '选择格式', '点击下载'] },
+          { heading: '适用场景', paragraphs: ['适合保存创意视频素材、整理营销参考案例。'] },
+        ],
+        faqs: [{ q: 'VidGrab 下载的 TikTok 视频有水印吗？', a: 'VidGrab 不额外添加水印，视频质量取决于平台源文件。' }],
+        related: [{ path: '/zh/platforms/instagram', label: 'Instagram 下载器' }, { path: '/zh/', label: '返回中文入口' }],
+      },
+      {
+        path: '/zh/platforms/instagram',
+        title: 'Instagram 视频下载器 - VidGrab | 公开内容下载',
+        description: '用 VidGrab 下载 Instagram 公开视频和 Reels，支持 MP4 格式下载和音频提取。',
+        keywords: ['Instagram 下载', 'Instagram 视频下载', 'Reels 下载', 'VidGrab'],
+        h1: 'Instagram 视频下载器',
+        sections: [
+          { heading: '支持的能力', paragraphs: ['VidGrab 支持下载 Instagram 公开帖子和 Reels 视频。'], items: ['MP4 视频下载', 'Reels 下载', 'MP3 音频提取'] },
+          { heading: '使用步骤', paragraphs: [''], items: ['复制 Instagram 视频链接', '粘贴到 VidGrab', '选择格式下载'] },
+          { heading: '注意事项', paragraphs: ['仅支持公开账号内容，私密账号内容无法下载。'] },
+        ],
+        faqs: [{ q: '私密账号的视频能下载吗？', a: '不能，VidGrab 只支持公开可访问的内容。' }],
+        related: [{ path: '/zh/platforms/tiktok', label: 'TikTok 下载器' }, { path: '/zh/', label: '返回中文入口' }],
+      },
+    ],
+    features: [
+      {
+        path: '/zh/features/video-downloader',
+        title: '在线视频下载器 - VidGrab | 支持 1000+ 平台',
+        description: 'VidGrab 在线视频下载器支持 YouTube、Bilibili、TikTok 等 1000+ 平台，提供 MP4/MP3 多格式下载。',
+        keywords: ['在线视频下载器', '视频下载工具', 'MP4 下载', 'YouTube 下载', 'VidGrab'],
+        h1: '在线视频下载器',
+        sections: [
+          { heading: '功能价值', paragraphs: ['VidGrab 让你免安装软件，直接在浏览器中下载公开视频，支持 MP4、MP3、WebM 等多种格式。'] },
+          { heading: '使用步骤', paragraphs: [''], items: ['粘贴视频链接', '解析视频信息', '选择格式与清晰度', '点击下载'] },
+          { heading: '支持平台', paragraphs: ['YouTube、Bilibili、TikTok、Instagram、Twitter/X、Facebook、Vimeo 等 1000+ 平台。'] },
+        ],
+        faqs: [{ q: '下载视频需要安装软件吗？', a: '不需要，VidGrab 是纯在线工具，打开网页即可使用。' }],
+        related: [{ path: '/zh/features/audio-extractor', label: '音频提取' }, { path: '/zh/features/ai-video-summarizer', label: 'AI 总结' }, { path: '/zh/', label: '返回中文入口' }],
+      },
+      {
+        path: '/zh/features/audio-extractor',
+        title: '在线音频提取器 - VidGrab | 视频转 MP3',
+        description: '用 VidGrab 从公开视频中提取 MP3 音频，支持 YouTube、Bilibili 等平台，无需安装软件。',
+        keywords: ['音频提取', '视频转 MP3', 'YouTube MP3', 'Bilibili MP3', 'VidGrab'],
+        h1: '在线音频提取器',
+        sections: [
+          { heading: '功能价值', paragraphs: ['VidGrab 支持从公开视频中直接提取 MP3 音频，适合保存播客、讲座和音乐内容。'] },
+          { heading: '使用步骤', paragraphs: [''], items: ['粘贴视频链接', '选择 MP3 格式', '点击下载'] },
+          { heading: '适用场景', paragraphs: ['保存播客音频、提取讲座录音、收藏音乐现场。'] },
+        ],
+        faqs: [{ q: '音频提取支持哪些格式？', a: '目前主要支持 MP3 格式，质量取决于视频源文件。' }],
+        related: [{ path: '/zh/features/video-downloader', label: '视频下载器' }, { path: '/zh/', label: '返回中文入口' }],
+      },
+      {
+        path: '/zh/features/subtitle-downloader',
+        title: '字幕下载器 - VidGrab | SRT/VTT/TXT 导出',
+        description: '用 VidGrab 下载并导出公开视频的字幕文件，支持 SRT、VTT、TXT 格式，适合学习与整理。',
+        keywords: ['字幕下载', '字幕导出', 'SRT 下载', 'YouTube 字幕', 'VidGrab'],
+        h1: '字幕下载器',
+        sections: [
+          { heading: '功能价值', paragraphs: ['VidGrab 可提取视频字幕并导出为 SRT、VTT 或 TXT 文件，方便复盘与翻译。'] },
+          { heading: '使用步骤', paragraphs: [''], items: ['粘贴视频链接并分析', '在 AI 助手面板查看字幕', '选择格式下载'] },
+          { heading: '适用场景', paragraphs: ['语言学习、课程笔记整理、内容翻译与无障碍访问。'] },
+        ],
+        faqs: [{ q: '所有视频都有字幕可以下载吗？', a: '仅支持平台提供了字幕或自动生成字幕的视频。' }],
+        related: [{ path: '/zh/features/ai-video-summarizer', label: 'AI 视频总结' }, { path: '/zh/', label: '返回中文入口' }],
+      },
+      {
+        path: '/zh/features/ai-video-summarizer',
+        title: 'AI 视频总结工具 - VidGrab | 自动生成摘要与思维导图',
+        description: 'VidGrab AI 助手自动总结公开视频内容，生成章节摘要、思维导图，并支持流式问答。',
+        keywords: ['AI 视频总结', '视频摘要生成', '思维导图', 'AI 问答', 'VidGrab'],
+        h1: 'AI 视频总结工具',
+        sections: [
+          { heading: '功能价值', paragraphs: ['VidGrab AI 助手能自动提取视频核心内容，生成总览摘要、章节要点和思维导图，帮助快速掌握长视频重点。'] },
+          { heading: '使用步骤', paragraphs: [''], items: ['粘贴视频链接', '等待 AI 分析完成', '查看摘要与思维导图', '通过问答深入了解内容'] },
+          { heading: '支持平台', paragraphs: ['支持有字幕的 YouTube、Bilibili 等平台视频。'] },
+        ],
+        faqs: [{ q: 'AI 总结需要会员吗？', a: '免费用户每日可使用 2 次，开通 VIP 后无限使用。' }],
+        related: [{ path: '/zh/features/subtitle-downloader', label: '字幕下载' }, { path: '/zh/', label: '返回中文入口' }],
+      },
+    ],
+    faq: {
+      path: '/zh/faq',
+      title: 'VidGrab 常见问题 - 视频下载与 AI 总结 FAQ',
+      description: 'VidGrab 常见问题解答，包括支持平台、下载格式、AI 总结使用、会员权益等。',
+      keywords: ['VidGrab 常见问题', 'VidGrab FAQ', '视频下载常见问题', 'AI 总结 FAQ'],
+      h1: 'VidGrab 常见问题',
+      sections: [{ heading: '使用前必读', paragraphs: ['以下是 VidGrab 用户最常提到的问题与解答。'] }],
+      faqs: [
+        { q: 'VidGrab 支持哪些平台？', a: '支持 YouTube、Bilibili、TikTok、Instagram、Twitter/X 等 1000+ 平台。' },
+        { q: 'VidGrab 免费使用吗？', a: '视频下载功能永久免费，AI 学习助手免费用户每日 2 次，VIP 会员无限使用。' },
+        { q: '下载视频需要登录吗？', a: '下载功能无需登录，AI 功能需要注册账号。' },
+        { q: '支持下载 4K 视频吗？', a: '支持，清晰度取决于平台源视频质量。' },
+        { q: '下载的文件会保存在服务器上吗？', a: '不会，文件下载完成后服务器会立即清理，保护用户隐私。' },
+        { q: '如何联系客服？', a: '请通过页面底部的联系我们入口发送反馈。' },
+      ],
+      related: [{ path: '/zh/features/video-downloader', label: '视频下载器' }, { path: '/zh/features/ai-video-summarizer', label: 'AI 总结' }, { path: '/zh/', label: '返回中文入口' }],
+    },
   },
   en: {
     hub: {
-      slug: 'index',
       path: '/en/',
-      title: 'Video Downloader and AI Summarizer - VidGrab | English Hub',
-      description: 'Explore VidGrab in English with platform pages, feature pages, FAQ, subtitle export, and AI summary workflows for public videos.',
-      keywords: ['video downloader', 'AI video summarizer', 'subtitle downloader', 'public video tools', 'VidGrab'],
-      h1: 'VidGrab English hub for video download and AI summary',
-      intro: 'This hub connects you to VidGrab platform pages, feature pages, and FAQ content so you can move from search to the right workflow quickly.',
-      sections: enHomeSections,
-      relatedLinks: [...enPlatformLinks, ...enFeatureLinks, { path: '/en/faq', label: 'FAQ' }],
+      title: 'Video Downloader & AI Summarizer - VidGrab | English Hub',
+      description: 'VidGrab lets you download public videos, export subtitles, extract audio, and generate AI summaries from YouTube, Bilibili, TikTok and 1000+ platforms.',
+      keywords: ['video downloader', 'AI video summarizer', 'subtitle downloader', 'YouTube downloader', 'VidGrab'],
+      h1: 'VidGrab Video Downloader & AI Summarizer',
+      sections: [
+        { heading: 'Core Features', paragraphs: ['VidGrab combines video downloading, subtitle export, and AI-powered summarization in one workflow.'], items: ['Video download (MP4/MP3/WebM)', 'AI video summary & chapter breakdown', 'Subtitle export (SRT/VTT/TXT)', 'Mind map visualization', 'AI streaming Q&A'] },
+        { heading: 'Supported Platforms', paragraphs: ['Built on yt-dlp, supporting 1000+ platforms worldwide.'], items: ['YouTube', 'Bilibili', 'TikTok', 'Instagram', 'Twitter / X', 'Facebook', 'Vimeo'] },
+      ],
+      related: [
+        { path: '/en/platforms/youtube', label: 'YouTube Downloader' },
+        { path: '/en/platforms/bilibili', label: 'Bilibili Downloader' },
+        { path: '/en/features/ai-video-summarizer', label: 'AI Summarizer' },
+        { path: '/en/faq', label: 'FAQ' },
+        { path: '/zh/', label: '中文入口' },
+      ],
     },
-    platforms: enPlatformPages,
-    features: enFeaturePages,
-    faq: enFaqPage,
+    platforms: [
+      {
+        path: '/en/platforms/youtube',
+        title: 'YouTube Video Downloader - VidGrab | Download & AI Summarize',
+        description: 'Download public YouTube videos with VidGrab. Supports MP4/MP3, multiple resolutions, subtitle export, and AI video summarization.',
+        keywords: ['YouTube downloader', 'YouTube video download', 'YouTube MP4', 'YouTube subtitle download', 'VidGrab'],
+        h1: 'YouTube Video Downloader',
+        sections: [
+          { heading: 'Supported Capabilities', paragraphs: ['VidGrab parses public YouTube links and offers multiple format and resolution options.'], items: ['MP4 download (1080p/720p/480p)', 'MP3 audio extraction', 'Subtitle download (SRT/VTT/TXT)', 'AI video summary & Q&A'] },
+          { heading: 'How to Use', paragraphs: [''], items: ['Copy the YouTube video URL', 'Paste into VidGrab', 'Choose format and resolution', 'Click download or generate AI summary'] },
+          { heading: 'Use Cases', paragraphs: ['Great for study review, course archiving, and offline viewing.'] },
+        ],
+        faqs: [
+          { q: 'Can VidGrab download YouTube member-only content?', a: 'No. VidGrab only supports publicly accessible videos.' },
+          { q: 'Do I need to log in to download YouTube videos?', a: 'No. Just paste a public link and download directly.' },
+        ],
+        related: [{ path: '/en/platforms/bilibili', label: 'Bilibili Downloader' }, { path: '/en/features/ai-video-summarizer', label: 'AI Summarizer' }, { path: '/en/', label: 'English Hub' }],
+      },
+      {
+        path: '/en/platforms/bilibili',
+        title: 'Bilibili Video Downloader - VidGrab | Download B-site Videos',
+        description: 'Download public Bilibili videos with VidGrab. Supports multiple resolutions, audio extraction, and AI summarization.',
+        keywords: ['Bilibili downloader', 'Bilibili video download', 'VidGrab'],
+        h1: 'Bilibili Video Downloader',
+        sections: [
+          { heading: 'Supported Capabilities', paragraphs: ['VidGrab supports public Bilibili video links with multiple format options.'], items: ['MP4 video download', 'MP3 audio extraction', 'Subtitle export', 'AI video summary'] },
+          { heading: 'How to Use', paragraphs: [''], items: ['Copy the Bilibili video URL', 'Paste into VidGrab', 'Select format', 'Click download'] },
+          { heading: 'Use Cases', paragraphs: ['Ideal for archiving educational content and extracting audio lectures.'] },
+        ],
+        faqs: [{ q: 'Can VidGrab download Bilibili premium content?', a: 'No. Only publicly accessible videos are supported.' }],
+        related: [{ path: '/en/platforms/youtube', label: 'YouTube Downloader' }, { path: '/en/platforms/tiktok', label: 'TikTok Downloader' }, { path: '/en/', label: 'English Hub' }],
+      },
+      {
+        path: '/en/platforms/tiktok',
+        title: 'TikTok Video Downloader - VidGrab | Download Public TikToks',
+        description: 'Download public TikTok videos with VidGrab. Supports MP4 format and audio extraction.',
+        keywords: ['TikTok downloader', 'TikTok video download', 'VidGrab'],
+        h1: 'TikTok Video Downloader',
+        sections: [
+          { heading: 'Supported Capabilities', paragraphs: ['VidGrab supports downloading public TikTok videos in MP4 format.'], items: ['MP4 video download', 'MP3 audio extraction'] },
+          { heading: 'How to Use', paragraphs: [''], items: ['Copy the TikTok video URL', 'Paste into VidGrab', 'Select format', 'Click download'] },
+          { heading: 'Use Cases', paragraphs: ['Save creative inspiration and archive marketing references.'] },
+        ],
+        faqs: [{ q: 'Will downloaded TikTok videos have a watermark?', a: 'VidGrab does not add watermarks. Quality depends on the source file.' }],
+        related: [{ path: '/en/platforms/instagram', label: 'Instagram Downloader' }, { path: '/en/', label: 'English Hub' }],
+      },
+      {
+        path: '/en/platforms/instagram',
+        title: 'Instagram Video Downloader - VidGrab | Download Public Content',
+        description: 'Download public Instagram videos and Reels with VidGrab. Supports MP4 and audio extraction.',
+        keywords: ['Instagram downloader', 'Instagram video download', 'Reels downloader', 'VidGrab'],
+        h1: 'Instagram Video Downloader',
+        sections: [
+          { heading: 'Supported Capabilities', paragraphs: ['VidGrab supports downloading public Instagram posts and Reels.'], items: ['MP4 video download', 'Reels download', 'MP3 audio extraction'] },
+          { heading: 'How to Use', paragraphs: [''], items: ['Copy the Instagram video URL', 'Paste into VidGrab', 'Select format and download'] },
+          { heading: 'Limitations', paragraphs: ['Only public account content is supported.'] },
+        ],
+        faqs: [{ q: 'Can I download from private Instagram accounts?', a: 'No. VidGrab only supports publicly accessible content.' }],
+        related: [{ path: '/en/platforms/tiktok', label: 'TikTok Downloader' }, { path: '/en/', label: 'English Hub' }],
+      },
+    ],
+    features: [
+      {
+        path: '/en/features/video-downloader',
+        title: 'Online Video Downloader - VidGrab | 1000+ Platforms',
+        description: 'VidGrab online video downloader supports YouTube, Bilibili, TikTok and 1000+ platforms. Download MP4, MP3 without installing software.',
+        keywords: ['online video downloader', 'video download tool', 'MP4 downloader', 'VidGrab'],
+        h1: 'Online Video Downloader',
+        sections: [
+          { heading: 'Why VidGrab', paragraphs: ['Download public videos directly in your browser with no software installation required.'] },
+          { heading: 'How to Use', paragraphs: [''], items: ['Paste the video URL', 'Parse video info', 'Choose format and resolution', 'Click download'] },
+          { heading: 'Supported Platforms', paragraphs: ['YouTube, Bilibili, TikTok, Instagram, Twitter/X, Facebook, Vimeo and 1000+ more.'] },
+        ],
+        faqs: [{ q: 'Do I need to install software?', a: 'No. VidGrab is fully browser-based.' }],
+        related: [{ path: '/en/features/audio-extractor', label: 'Audio Extractor' }, { path: '/en/features/ai-video-summarizer', label: 'AI Summarizer' }, { path: '/en/', label: 'English Hub' }],
+      },
+      {
+        path: '/en/features/audio-extractor',
+        title: 'Online Audio Extractor - VidGrab | Video to MP3',
+        description: 'Extract MP3 audio from public videos with VidGrab. Supports YouTube, Bilibili and more. No software needed.',
+        keywords: ['audio extractor', 'video to MP3', 'YouTube MP3', 'VidGrab'],
+        h1: 'Online Audio Extractor',
+        sections: [
+          { heading: 'Why Use It', paragraphs: ['Extract MP3 audio from public videos for podcasts, lectures, and music.'] },
+          { heading: 'How to Use', paragraphs: [''], items: ['Paste the video URL', 'Select MP3 format', 'Click download'] },
+          { heading: 'Use Cases', paragraphs: ['Save podcast audio, extract lecture recordings, archive live music.'] },
+        ],
+        faqs: [{ q: 'What audio formats are supported?', a: 'MP3 is the primary format.' }],
+        related: [{ path: '/en/features/video-downloader', label: 'Video Downloader' }, { path: '/en/', label: 'English Hub' }],
+      },
+      {
+        path: '/en/features/subtitle-downloader',
+        title: 'Subtitle Downloader - VidGrab | Export SRT/VTT/TXT',
+        description: 'Download and export subtitles from public videos with VidGrab. Supports SRT, VTT, and TXT formats.',
+        keywords: ['subtitle downloader', 'subtitle export', 'SRT download', 'YouTube subtitles', 'VidGrab'],
+        h1: 'Subtitle Downloader',
+        sections: [
+          { heading: 'Why Use It', paragraphs: ['Export video subtitles as SRT, VTT, or TXT for review and translation.'] },
+          { heading: 'How to Use', paragraphs: [''], items: ['Paste video URL and analyze', 'View subtitles in the AI panel', 'Choose format and download'] },
+          { heading: 'Use Cases', paragraphs: ['Language learning, course notes, content translation, and accessibility.'] },
+        ],
+        faqs: [{ q: 'Are subtitles available for all videos?', a: 'Only videos with platform-provided or auto-generated subtitles are supported.' }],
+        related: [{ path: '/en/features/ai-video-summarizer', label: 'AI Summarizer' }, { path: '/en/', label: 'English Hub' }],
+      },
+      {
+        path: '/en/features/ai-video-summarizer',
+        title: 'AI Video Summarizer - VidGrab | Auto Summary & Mind Map',
+        description: 'VidGrab AI assistant auto-summarizes public videos, generating chapter breakdowns, mind maps, and streaming Q&A.',
+        keywords: ['AI video summarizer', 'video summary generator', 'mind map', 'AI Q&A', 'VidGrab'],
+        h1: 'AI Video Summarizer',
+        sections: [
+          { heading: 'Why Use It', paragraphs: ['VidGrab AI extracts key content and produces summaries, chapter highlights, and mind maps.'] },
+          { heading: 'How to Use', paragraphs: [''], items: ['Paste the video URL', 'Wait for AI analysis', 'Review summary and mind map', 'Ask follow-up questions'] },
+          { heading: 'Supported Platforms', paragraphs: ['Supports YouTube, Bilibili, and other platforms with subtitle-enabled videos.'] },
+        ],
+        faqs: [{ q: 'Does AI summarization require membership?', a: 'Free users get 2 uses per day. VIP members get unlimited access.' }],
+        related: [{ path: '/en/features/subtitle-downloader', label: 'Subtitle Downloader' }, { path: '/en/', label: 'English Hub' }],
+      },
+    ],
+    faq: {
+      path: '/en/faq',
+      title: 'VidGrab FAQ - Video Download & AI Summary Questions Answered',
+      description: 'Answers to common VidGrab questions about supported platforms, download formats, AI summarization, and membership.',
+      keywords: ['VidGrab FAQ', 'video downloader FAQ', 'AI summarizer FAQ'],
+      h1: 'VidGrab Frequently Asked Questions',
+      sections: [{ heading: 'Before You Start', paragraphs: ['Here are the most common questions from VidGrab users.'] }],
+      faqs: [
+        { q: 'Which platforms does VidGrab support?', a: 'YouTube, Bilibili, TikTok, Instagram, Twitter/X, and 1000+ more.' },
+        { q: 'Is VidGrab free?', a: 'Video downloading is free forever. AI assistant gives free users 2 uses/day; VIP gets unlimited.' },
+        { q: 'Do I need to log in to download?', a: 'No login required for downloads. An account is needed for AI features.' },
+        { q: 'Does VidGrab support 4K?', a: 'Yes. Resolution depends on the source video quality.' },
+        { q: 'Are downloaded files stored on your servers?', a: 'No. Files are deleted immediately after download.' },
+        { q: 'How do I contact support?', a: 'Use the contact link in the page footer.' },
+      ],
+      related: [{ path: '/en/features/video-downloader', label: 'Video Downloader' }, { path: '/en/features/ai-video-summarizer', label: 'AI Summarizer' }, { path: '/en/', label: 'English Hub' }],
+    },
   },
 }
