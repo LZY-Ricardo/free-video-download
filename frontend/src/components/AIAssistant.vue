@@ -548,7 +548,7 @@ onBeforeUnmount(() => {
               <input
                 v-model="question"
                 type="text"
-                placeholder="基于当前视频提问，例如：这段视频的核心观点是什么？"
+                placeholder="输入你想了解的内容"
                 class="flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 @keyup.enter="onAsk"
               />
@@ -586,7 +586,7 @@ onBeforeUnmount(() => {
               </div>
 
               <div v-if="!chatHistory.length" class="text-sm text-gray-500 py-8 text-center">
-                你可以问：这个视频的核心观点是什么？有哪些可执行步骤？
+                试试这些问题：作者想解决什么问题？关键方法有哪些？我可以如何落地执行？
               </div>
             </div>
           </div>
