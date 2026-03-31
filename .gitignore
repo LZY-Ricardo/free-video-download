@@ -17,3 +17,9 @@ __pycache__/
 # Node build outputs
 frontend/dist/
 frontend/node_modules/
+
+# Local agent/tooling artifacts
+.codex/
+.superpowers/
+backend/pip/
+.claude/settings.local.json

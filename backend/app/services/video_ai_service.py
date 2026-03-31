@@ -225,6 +225,7 @@ class VideoAIService:
         subtitle_url, language = self._pick_subtitle_track(info)
 
         transcript: List[TranscriptSegment] = []
+        temp_media_path: Optional[Path] = None
 
         if subtitle_url:
             if progress_callback:
@@ -235,18 +236,27 @@ class VideoAIService:
                 progress_callback(60, "字幕解析完成")
         else:
             local_video_path = self._find_local_video_file(info, url)
+            if not local_video_path:
+                if progress_callback:
+                    progress_callback(22, "准备临时下载音频")
+                local_video_path = self._download_media_for_asr(url, info)
+                temp_media_path = local_video_path
             if local_video_path:
                 if progress_callback:
                     progress_callback(25, "开始本地语音转写")
                 duration_sec = float(info.get("duration") or 0)
-                transcript = self._transcribe_local_video_with_whisper(
-                    local_video_path,
-                    duration_sec=duration_sec,
-                    progress_callback=progress_callback,
-                )
-                language = "zh-ASR"
-                if progress_callback:
-                    progress_callback(78, "转写完成")
+                try:
+                    transcript = self._transcribe_local_video_with_whisper(
+                        local_video_path,
+                        duration_sec=duration_sec,
+                        progress_callback=progress_callback,
+                    )
+                    language = "zh-ASR"
+                    if progress_callback:
+                        progress_callback(78, "转写完成")
+                finally:
+                    if temp_media_path:
+                        self._cleanup_temp_media(temp_media_path)
 
         if not transcript:
             if self._has_only_danmaku(info):
@@ -363,6 +373,7 @@ class VideoAIService:
             yield {"event": "stage", "data": {"stage": "检测字幕轨道", "progress": 15}}
             subtitle_url, language = self._pick_subtitle_track(info)
             transcript: List[TranscriptSegment] = []
+            temp_media_path: Optional[Path] = None
 
             if subtitle_url:
                 yield {"event": "stage", "data": {"stage": "下载字幕文本", "progress": 25}}
@@ -371,15 +382,23 @@ class VideoAIService:
                 yield {"event": "stage", "data": {"stage": "字幕解析完成", "progress": 60}}
             else:
                 local_video_path = self._find_local_video_file(info, url)
+                if not local_video_path:
+                    yield {"event": "stage", "data": {"stage": "准备临时下载音频", "progress": 22}}
+                    local_video_path = self._download_media_for_asr(url, info)
+                    temp_media_path = local_video_path
                 if local_video_path:
                     yield {"event": "stage", "data": {"stage": "开始本地语音转写", "progress": 25}}
                     duration_sec = float(info.get("duration") or 0)
-                    transcript = self._transcribe_local_video_with_whisper(
-                        local_video_path,
-                        duration_sec=duration_sec,
-                    )
-                    language = "zh-ASR"
-                    yield {"event": "stage", "data": {"stage": "转写完成", "progress": 65}}
+                    try:
+                        transcript = self._transcribe_local_video_with_whisper(
+                            local_video_path,
+                            duration_sec=duration_sec,
+                        )
+                        language = "zh-ASR"
+                        yield {"event": "stage", "data": {"stage": "转写完成", "progress": 65}}
+                    finally:
+                        if temp_media_path:
+                            self._cleanup_temp_media(temp_media_path)
 
             if not transcript:
                 if self._has_only_danmaku(info):
@@ -731,31 +750,56 @@ class VideoAIService:
                 if stem == title or stem == safe_title:
                     return path
 
-        # 2) 标题包含匹配
-        if title:
-            key = title[:12]
-            for path in candidates:
-                if key and key in path.stem:
-                    return path
-
-        # 3) BVID 匹配
+        # 2) BVID 匹配
         if bvid:
             for path in candidates:
                 if bvid.lower() in path.stem.lower():
                     return path
 
-        # 4) 兜底：取 backend/downloads 中最新文件
-        backend_download_dir = self.backend_root / "downloads"
-        backend_candidates = [p for p in candidates if p.parent == backend_download_dir]
-        if backend_candidates:
-            backend_candidates.sort(key=lambda p: p.stat().st_mtime, reverse=True)
-            return backend_candidates[0]
-
-        candidates.sort(key=lambda p: p.stat().st_mtime, reverse=True)
-        return candidates[0]
+        # 不再使用“最新文件”兜底，避免把旧视频转写误用于新链接。
+        return None
 
     def _safe_filename(self, value: str) -> str:
         return re.sub(r"[<>:\"/\\\\|?*]+", "_", value).strip()
+
+    def _download_media_for_asr(self, url: str, info: dict) -> Optional[Path]:
+        """
+        无字幕时自动临时下载音频/视频，供本地 ASR 使用。
+        """
+        output_dir = self.backend_root / "downloads"
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        media_id = self._safe_filename(str(info.get("id") or "video")).strip() or "video"
+        outtmpl = str(output_dir / f"asr_src_{media_id}_%(autonumber)s.%(ext)s")
+
+        ydl_opts = {
+            "quiet": True,
+            "no_warnings": True,
+            "no_color": True,
+            "nocheckcertificate": True,
+            "format": "bestaudio[ext=m4a]/bestaudio/best",
+            "outtmpl": outtmpl,
+            "noplaylist": True,
+            "overwrites": True,
+        }
+
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info_obj = ydl.extract_info(url, download=True)
+                downloaded = ydl.prepare_filename(info_obj)
+                media_path = Path(downloaded)
+                if media_path.exists():
+                    return media_path
+        except Exception:
+            return None
+        return None
+
+    def _cleanup_temp_media(self, media_path: Path):
+        """清理自动下载的临时媒体文件。"""
+        try:
+            media_path.unlink(missing_ok=True)
+        except Exception:
+            pass
 
     def _ensure_whisper_model(self):
         self.models_dir.mkdir(parents=True, exist_ok=True)

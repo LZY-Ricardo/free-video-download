@@ -34,6 +34,7 @@ class YTDLPService:
             "quiet": True,
             "no_warnings": True,
             "skip_download": True,
+            "no_color": True,
             # 避免 YouTube 机器人验证
             "nocheckcertificate": True,
             # 不指定 player_client 以获取所有可用格式
@@ -57,8 +58,7 @@ class YTDLPService:
                     "formats": formats,
                 }
         except Exception as e:
-            import traceback
-            error_detail = f"获取视频信息失败: {str(e)}"
+            error_detail = f"获取视频信息失败: {self._sanitize_error_message(str(e))}"
             raise ValueError(error_detail)
 
     def download_video(
@@ -87,6 +87,7 @@ class YTDLPService:
             "format": format_selector,
             "outtmpl": os.path.join(self.download_dir, "%(title)s.%(ext)s"),
             "progress_hooks": [self._build_progress_hook(progress_callback)],
+            "no_color": True,
             # 文件已存在时覆盖
             "overwrite": True,
             # 避免 YouTube 机器人验证
@@ -100,7 +101,7 @@ class YTDLPService:
                 file_path = ydl.prepare_filename(info)
                 return file_path
         except Exception as e:
-            raise ValueError(f"下载视频失败: {str(e)}")
+            raise ValueError(f"下载视频失败: {self._sanitize_error_message(str(e))}")
 
     def get_direct_url(
         self, url: str, format: str = "best", quality: Optional[str] = None
@@ -122,6 +123,7 @@ class YTDLPService:
             "quiet": True,
             "no_warnings": True,
             "format": format_selector,
+            "no_color": True,
             # 避免 YouTube 机器人验证
             "nocheckcertificate": True,
             "extractor_args": {
@@ -143,7 +145,7 @@ class YTDLPService:
                     return formats[0].get("url", "")
                 raise ValueError("无法获取视频直链")
         except Exception as e:
-            raise ValueError(f"获取视频直链失败: {str(e)}")
+            raise ValueError(f"获取视频直链失败: {self._sanitize_error_message(str(e))}")
 
     def _build_format_selector(self, format: str, quality: Optional[str]) -> str:
         """构建格式选择器"""
@@ -189,6 +191,10 @@ class YTDLPService:
             if match:
                 return float(match.group(1))
             return 0.0
+
+    def _sanitize_error_message(self, message: str) -> str:
+        """清洗第三方工具错误，避免前端显示 ANSI 颜色控制符。"""
+        return self._strip_ansi(message)
 
     def _extract_formats(self, formats: List[dict]) -> List[dict]:
         """提取可用格式，包含详细信息"""
