@@ -324,6 +324,114 @@ onMounted(async () => {
       />
     </main>
 
+    <!-- 套餐价格区块 -->
+    <section class="bg-white border-t border-gray-100">
+      <div class="max-w-4xl mx-auto px-6 py-16">
+        <div class="text-center mb-10">
+          <h2 class="text-2xl font-bold text-gray-900">套餐价格</h2>
+          <p class="text-sm text-gray-500 mt-2">下载功能永久免费，AI 学习助手开通 VIP 后无限使用</p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-6">
+          <!-- 免费版 -->
+          <div class="rounded-2xl border border-gray-200 bg-gray-50 p-6 flex flex-col">
+            <div class="mb-4">
+              <span class="text-xs font-semibold tracking-wide text-gray-500 uppercase">免费版</span>
+              <div class="mt-2 flex items-end gap-1">
+                <span class="text-3xl font-bold text-gray-900">¥0</span>
+                <span class="text-sm text-gray-500 mb-1">永久免费</span>
+              </div>
+            </div>
+            <ul class="space-y-3 text-sm flex-1">
+              <li class="flex items-center gap-2 text-gray-700">
+                <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                视频下载（无限次）
+              </li>
+              <li class="flex items-center gap-2 text-gray-700">
+                <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                支持 100+ 平台（YouTube / Bilibili / TikTok 等）
+              </li>
+              <li class="flex items-center gap-2 text-gray-700">
+                <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                多格式 / 多清晰度选择
+              </li>
+              <li class="flex items-center gap-2 text-gray-400">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                AI 视频总结（每日限 2 次）
+              </li>
+              <li class="flex items-center gap-2 text-gray-400">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                字幕导出（SRT / VTT / TXT）
+              </li>
+              <li class="flex items-center gap-2 text-gray-400">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                思维导图浏览与导出
+              </li>
+              <li class="flex items-center gap-2 text-gray-400">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                AI 流式问答（无限次）
+              </li>
+            </ul>
+            <div class="mt-6">
+              <button
+                class="w-full rounded-lg border border-gray-300 bg-white py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                @click="openAuthModal('register')"
+              >
+                免费注册
+              </button>
+            </div>
+          </div>
+
+          <!-- VIP 版 -->
+          <div class="rounded-2xl border-2 border-blue-500 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6 relative flex flex-col">
+            <span class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-4 py-1 text-xs font-semibold text-white">推荐</span>
+            <div class="mb-4">
+              <span class="text-xs font-semibold tracking-wide text-blue-600 uppercase">VIP 会员</span>
+              <div class="mt-2 flex items-end gap-1">
+                <span class="text-3xl font-bold text-gray-900">¥19.9</span>
+                <span class="text-sm text-gray-500 mb-1">/ 30天</span>
+              </div>
+            </div>
+            <ul class="space-y-3 text-sm flex-1">
+              <li class="flex items-center gap-2 text-gray-700">
+                <svg class="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                免费版全部功能
+              </li>
+              <li class="flex items-center gap-2 text-gray-700">
+                <svg class="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                AI 视频总结（无限次）
+              </li>
+              <li class="flex items-center gap-2 text-gray-700">
+                <svg class="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                字幕导出（SRT / VTT / TXT）
+              </li>
+              <li class="flex items-center gap-2 text-gray-700">
+                <svg class="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                思维导图浏览与高清导出（PNG / SVG）
+              </li>
+              <li class="flex items-center gap-2 text-gray-700">
+                <svg class="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                AI 流式问答（无限次）
+              </li>
+              <li class="flex items-center gap-2 text-gray-700">
+                <svg class="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                优先客服支持
+              </li>
+            </ul>
+            <div class="mt-6">
+              <button
+                class="w-full rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                :disabled="checkoutLoading"
+                @click="handleStartCheckout"
+              >
+                {{ checkoutLoading ? '跳转支付中...' : authenticated ? (membership?.is_member ? '续费会员' : '立即开通') : '登录后开通' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- 底部 -->
     <footer class="bg-white border-t border-gray-100">
       <div class="max-w-6xl mx-auto px-6 py-8">
