@@ -120,8 +120,8 @@ const handleRegister = async () => {
       class="fixed inset-0 z-[1300] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4"
       @click.self="handleClose"
     >
-      <div class="w-full max-w-md rounded-2xl bg-white border border-gray-200 shadow-xl overflow-hidden">
-        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+      <div class="glass-panel-strong w-full max-w-md rounded-2xl overflow-hidden">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200/70">
           <div>
             <h3 class="text-lg font-semibold text-gray-900">账号中心</h3>
             <p class="text-xs text-gray-500 mt-1">登录后可购买会员并解锁 AI 学习助手</p>
@@ -135,17 +135,17 @@ const handleRegister = async () => {
         </div>
 
         <div class="px-5 pt-4">
-          <div class="inline-flex rounded-lg border border-gray-200 p-1 bg-gray-50">
+          <div class="vg-segment inline-flex rounded-lg p-1">
             <button
-              class="px-4 py-2 rounded-md text-sm font-medium transition-colors"
-              :class="activeMode === 'login' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'"
+              class="vg-segment-btn px-4 py-2 rounded-md text-sm font-medium"
+              :class="activeMode === 'login' ? 'vg-segment-btn-active' : ''"
               @click="switchMode('login')"
             >
               登录
             </button>
             <button
-              class="px-4 py-2 rounded-md text-sm font-medium transition-colors"
-              :class="activeMode === 'register' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'"
+              class="vg-segment-btn px-4 py-2 rounded-md text-sm font-medium"
+              :class="activeMode === 'register' ? 'vg-segment-btn-active' : ''"
               @click="switchMode('register')"
             >
               注册
@@ -154,7 +154,7 @@ const handleRegister = async () => {
         </div>
 
         <div class="px-5 py-5">
-          <div v-if="localError || error" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <div v-if="localError || error" class="vg-alert vg-alert-error mb-4 p-3 text-sm">
             {{ localError || error }}
           </div>
 
@@ -164,7 +164,7 @@ const handleRegister = async () => {
               <input
                 v-model="loginForm.email"
                 type="email"
-                class="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                class="vg-input w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none"
                 placeholder="you@example.com"
               />
             </div>
@@ -174,7 +174,7 @@ const handleRegister = async () => {
                 <input
                   v-model="loginForm.password"
                   :type="showLoginPassword ? 'text' : 'password'"
-                  class="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-10 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  class="vg-input w-full rounded-lg px-4 py-2.5 pr-10 text-sm focus:outline-none"
                   placeholder="至少 8 位"
                   @keyup.enter="handleLogin"
                 />
@@ -189,7 +189,7 @@ const handleRegister = async () => {
               </div>
             </div>
             <button
-              class="w-full rounded-lg bg-blue-600 text-white py-2.5 text-sm font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              class="vg-btn-primary w-full rounded-lg py-2.5 text-sm font-medium"
               :disabled="submitting"
               @click="handleLogin"
             >
@@ -203,7 +203,7 @@ const handleRegister = async () => {
               <input
                 v-model="registerForm.email"
                 type="email"
-                class="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                class="vg-input w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none"
                 placeholder="you@example.com"
               />
             </div>
@@ -213,7 +213,7 @@ const handleRegister = async () => {
                 <input
                   v-model="registerForm.password"
                   :type="showRegisterPassword ? 'text' : 'password'"
-                  class="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-10 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  class="vg-input w-full rounded-lg px-4 py-2.5 pr-10 text-sm focus:outline-none"
                   placeholder="至少 8 位"
                 />
                 <button
@@ -232,7 +232,7 @@ const handleRegister = async () => {
                 <input
                   v-model="registerForm.confirmPassword"
                   :type="showRegisterConfirmPassword ? 'text' : 'password'"
-                  class="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-10 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  class="vg-input w-full rounded-lg px-4 py-2.5 pr-10 text-sm focus:outline-none"
                   placeholder="再次输入密码"
                   @keyup.enter="handleRegister"
                 />
@@ -247,17 +247,17 @@ const handleRegister = async () => {
               </div>
             </div>
             <button
-              class="w-full rounded-lg bg-blue-600 text-white py-2.5 text-sm font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              class="vg-btn-primary w-full rounded-lg py-2.5 text-sm font-medium"
               :disabled="submitting"
               @click="handleRegister"
             >
               {{ submitting ? '注册中...' : '注册账号' }}
             </button>
 
-            <div v-if="registerMessage" class="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+            <div v-if="registerMessage" class="vg-alert vg-alert-success p-3 text-sm">
               <p>{{ registerMessage }}</p>
               <button
-                class="mt-3 w-full rounded-lg border border-green-300 bg-white px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-50 transition-colors"
+                class="vg-btn-ghost mt-3 w-full rounded-lg px-4 py-2 text-sm font-medium"
                 @click="switchToLoginWithPrefill"
               >
                 验证完成后点此登录 →

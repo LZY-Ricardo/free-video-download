@@ -242,7 +242,7 @@ onMounted(async () => {
               注册
             </button>
             <button
-              class="cta-soft flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors"
+              class="vg-btn-soft flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm"
               @click="openAuthModal('login')"
             >
               <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -271,14 +271,14 @@ onMounted(async () => {
         </div>
         <div class="flex items-center gap-3">
           <button
-            class="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+            class="vg-btn-primary px-4 py-2 rounded-lg text-sm font-medium"
             :disabled="checkoutLoading"
             @click="handleMockCheckoutSuccess"
           >
             {{ checkoutLoading ? '处理中...' : '模拟支付成功' }}
           </button>
           <button
-            class="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            class="vg-btn-ghost px-4 py-2 rounded-lg text-sm font-medium"
             @click="handleMockCheckoutCancel"
           >
             取消模拟支付
@@ -546,27 +546,6 @@ nav a {
   background: rgba(239, 246, 255, 0.86);
   color: #46607c;
   border: 1px solid rgba(147, 197, 253, 0.44);
-}
-
-.cta-soft {
-  color: #1e40af;
-  border: 1px solid rgba(59, 130, 246, 0.22);
-  background: linear-gradient(135deg, rgba(239, 246, 255, 0.95), rgba(219, 234, 254, 0.82));
-  box-shadow: 0 10px 24px rgba(59, 130, 246, 0.14);
-  transition:
-    transform var(--vg-dur-fast) var(--vg-ease-standard),
-    filter var(--vg-dur-fast) var(--vg-ease-standard),
-    box-shadow var(--vg-dur-mid) var(--vg-ease-standard),
-    background-color var(--vg-dur-mid) var(--vg-ease-standard);
-}
-
-.cta-soft:hover {
-  filter: brightness(0.98);
-  transform: translateY(-1px);
-}
-
-.cta-soft:active {
-  transform: translateY(0);
 }
 
 .notice-bar,

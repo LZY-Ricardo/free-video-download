@@ -60,29 +60,29 @@ const handleDownload = (options: any) => {
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto px-4 sm:px-6" :class="hasVideoInfo ? 'py-3' : 'py-10'">
+  <div class="download-shell max-w-7xl mx-auto px-4 sm:px-6" :class="hasVideoInfo ? 'py-3 sm:py-4' : 'py-7 sm:py-10'">
     <!-- Hero Section：compact 模式下收起标题，只保留输入框 -->
     <div :class="hasVideoInfo ? 'max-w-7xl mx-auto' : 'max-w-3xl mx-auto'">
       <!-- 大标题：compact 模式隐藏 -->
-      <div v-if="!hasVideoInfo" class="text-center mb-8">
-        <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
+      <div v-if="!hasVideoInfo" class="text-center mb-7 sm:mb-8">
+        <h1 class="text-2xl sm:text-4xl font-bold text-gray-900 mb-2">
           万能视频下载器
         </h1>
-        <p class="text-gray-500 text-sm sm:text-base">
+        <p class="text-gray-500 text-xs sm:text-base">
           支持 YouTube、Bilibili、TikTok 等 100+ 平台
         </p>
       </div>
 
       <!-- URL 输入 -->
       <div :class="hasVideoInfo ? 'mb-3' : 'mb-6'">
-        <div class="flex gap-2">
+        <div class="hero-input-wrap flex flex-col sm:flex-row gap-2">
           <div class="flex-1 relative">
             <input
               v-model="url"
               type="text"
               placeholder="粘贴视频链接..."
               :class="[
-                'w-full border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all text-gray-900',
+                'vg-input w-full rounded-lg focus:outline-none',
                 hasVideoInfo ? 'px-4 py-2 text-sm' : 'px-5 py-3.5',
               ]"
               @keyup.enter="handleGetInfo"
@@ -92,21 +92,24 @@ const handleDownload = (options: any) => {
             @click="handleGetInfo"
             :disabled="loading || !url"
             :class="[
-              'bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors whitespace-nowrap',
+              'vg-btn-primary w-full sm:w-auto font-medium rounded-lg whitespace-nowrap',
               hasVideoInfo ? 'px-4 py-2 text-sm' : 'px-6 sm:px-8',
             ]"
           >
             {{ loading && status === 'fetching' ? '解析中...' : '解析视频' }}
           </button>
         </div>
+        <p v-if="!hasVideoInfo" class="hero-helper mt-2 text-xs text-slate-500">
+          支持公开可访问视频链接，解析与下载完成后服务器自动清理临时文件
+        </p>
 
         <!-- 错误提示 -->
-        <div v-if="error" class="mt-2 p-2.5 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+        <div v-if="error" class="vg-alert vg-alert-error mt-2 p-2.5 text-sm">
           {{ error }}
         </div>
 
         <!-- URL提取提示 -->
-        <div v-if="extractedUrl" class="mt-2 p-2.5 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm flex items-center gap-2">
+        <div v-if="extractedUrl" class="vg-alert vg-alert-success mt-2 p-2.5 text-sm flex items-center gap-2">
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
           </svg>
@@ -173,19 +176,19 @@ const handleDownload = (options: any) => {
       </div>
 
     <!-- ========== 底部平台展示：compact 模式隐藏 ========== -->
-    <div v-if="!hasVideoInfo" class="mt-16 text-center max-w-3xl mx-auto">
+    <div v-if="!hasVideoInfo" class="mt-12 sm:mt-16 text-center max-w-3xl mx-auto">
       <h3 class="text-sm font-medium text-gray-500 mb-5 uppercase tracking-wide">支持平台</h3>
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div class="px-5 py-3 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+        <div class="platform-mini-card vg-card-soft px-5 py-3 rounded-lg">
           <span class="font-medium text-gray-700">YouTube</span>
         </div>
-        <div class="px-5 py-3 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+        <div class="platform-mini-card vg-card-soft px-5 py-3 rounded-lg">
           <span class="font-medium text-gray-700">Bilibili</span>
         </div>
-        <div class="px-5 py-3 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+        <div class="platform-mini-card vg-card-soft px-5 py-3 rounded-lg">
           <span class="font-medium text-gray-700">TikTok</span>
         </div>
-        <div class="px-5 py-3 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+        <div class="platform-mini-card vg-card-soft px-5 py-3 rounded-lg">
           <span class="font-medium text-gray-700">Instagram</span>
         </div>
       </div>
@@ -197,5 +200,57 @@ const handleDownload = (options: any) => {
 <style scoped>
 input::placeholder {
   color: #9ca3af;
+}
+
+.download-shell {
+  position: relative;
+}
+
+.hero-helper {
+  line-height: 1.5;
+  padding-left: 0.25rem;
+}
+
+.hero-input-wrap {
+  padding: 0.36rem;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+  backdrop-filter: saturate(145%) blur(10px);
+  transition:
+    box-shadow var(--vg-dur-mid) var(--vg-ease-standard),
+    border-color var(--vg-dur-mid) var(--vg-ease-standard),
+    background-color var(--vg-dur-mid) var(--vg-ease-standard);
+}
+
+@media (max-width: 640px) {
+  .hero-input-wrap {
+    padding: 0.44rem;
+    border-radius: 13px;
+  }
+
+  .platform-mini-card {
+    padding: 0.65rem 0.75rem;
+  }
+
+  .hero-helper {
+    font-size: 0.72rem;
+    padding-left: 0.1rem;
+    padding-right: 0.1rem;
+  }
+}
+
+.platform-mini-card {
+  transition:
+    border-color var(--vg-dur-mid) var(--vg-ease-standard),
+    box-shadow var(--vg-dur-mid) var(--vg-ease-standard),
+    transform var(--vg-dur-fast) var(--vg-ease-standard);
+}
+
+.platform-mini-card:hover {
+  border-color: rgba(96, 165, 250, 0.44);
+  box-shadow: 0 10px 22px rgba(30, 64, 175, 0.1);
+  transform: translateY(-1px);
 }
 </style>
