@@ -2,6 +2,7 @@ export interface VideoInfo {
   title: string
   duration?: number
   thumbnail?: string
+  thumbnail_proxy_url?: string
   platform: string
   uploader?: string
   view_count?: number

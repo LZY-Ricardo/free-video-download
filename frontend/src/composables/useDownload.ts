@@ -1,6 +1,7 @@
 import { onUnmounted, ref } from 'vue'
 import type { VideoInfo, TaskStatus } from '@/types'
 import apiClient from '@/api/client'
+import localResolverClient, { LOCAL_RESOLVER_BASE } from '@/api/localResolverClient'
 
 export function useDownload() {
   const url = ref('')
@@ -12,6 +13,7 @@ export function useDownload() {
   const error = ref<string | null>(null)
   const loading = ref(false)
   const extractedUrl = ref<string | null>(null) // 显示提取到的URL
+  const resolverMode = ref<'server' | 'local'>('server')
   let extractedUrlTimer: ReturnType<typeof setTimeout> | null = null
 
   const clearExtractedUrlTimer = () => {
@@ -35,6 +37,40 @@ export function useDownload() {
     const urlPattern = /(https?:\/\/[^\s\u4e00-\u9fa5]+)/g
     const match = text.match(urlPattern)
     return match ? match[0] : text
+  }
+
+  const isBilibiliUrl = (input: string): boolean => {
+    const text = (input || '').toLowerCase()
+    return text.includes('bilibili.com') || text.includes('b23.tv')
+  }
+
+  const isBilibiliRiskControlError = (message: string): boolean => {
+    const text = (message || '').toLowerCase()
+    return text.includes('412') || text.includes('precondition failed') || text.includes('风控')
+  }
+
+  const buildLocalResolverGuidance = () =>
+    [
+      '当前链接触发 B 站风控，已尝试切换本地解析模式但本地助手不可用。',
+      '请在你的电脑启动本地助手后重试：',
+      '1) 进入项目目录 `local-resolver`',
+      '2) 执行 `pip install -r requirements.txt`',
+      '3) 执行 `python server.py`',
+      `4) 保持本地服务运行（默认 ${LOCAL_RESOLVER_BASE}）`,
+    ].join('\n')
+
+  const tryLocalResolverInfo = async (videoUrl: string): Promise<VideoInfo> => {
+    const response = await localResolverClient.post<VideoInfo>('/info', { url: videoUrl })
+    resolverMode.value = 'local'
+    const encodedThumbnail = response.data.thumbnail ? encodeURIComponent(response.data.thumbnail) : null
+    const thumbnailProxyUrl = encodedThumbnail
+      ? `${LOCAL_RESOLVER_BASE}/proxy/image?url=${encodedThumbnail}&platform=${encodeURIComponent(response.data.platform || '')}`
+      : undefined
+    return {
+      ...response.data,
+      thumbnail_proxy_url: thumbnailProxyUrl,
+      note: [response.data.note, '当前使用本地解析模式（你的电脑网络环境）'].filter(Boolean).join(' | '),
+    }
   }
 
   // 获取视频信息
@@ -61,14 +97,31 @@ export function useDownload() {
     loading.value = true
     status.value = 'fetching'
     error.value = null
+    resolverMode.value = 'server'
 
     try {
       const response = await apiClient.post<VideoInfo>('/info', { url: url.value })
       videoInfo.value = response.data
       status.value = 'ready'
     } catch (err: any) {
-      error.value = err.response?.data?.detail || '获取视频信息失败'
-      status.value = 'error'
+      const detail = err.response?.data?.detail || '获取视频信息失败'
+      const statusCode = err.response?.status as number | undefined
+      const shouldTryLocalFallback =
+        isBilibiliUrl(url.value) &&
+        (isBilibiliRiskControlError(detail) || !statusCode || statusCode >= 500)
+
+      if (shouldTryLocalFallback) {
+        try {
+          videoInfo.value = await tryLocalResolverInfo(url.value)
+          status.value = 'ready'
+        } catch {
+          error.value = buildLocalResolverGuidance()
+          status.value = 'error'
+        }
+      } else {
+        error.value = detail
+        status.value = 'error'
+      }
     } finally {
       loading.value = false
     }
@@ -84,7 +137,8 @@ export function useDownload() {
     progress.value = 0
 
     try {
-      const response = await apiClient.post<any>('/download', {
+      const client = resolverMode.value === 'local' ? localResolverClient : apiClient
+      const response = await client.post<any>('/download', {
         url: url.value,
         ...options
       })
@@ -92,7 +146,7 @@ export function useDownload() {
 
       // 轮询获取状态
       if (taskId.value) {
-        pollStatus(taskId.value)
+        pollStatus(taskId.value, resolverMode.value)
       } else {
         throw new Error('未获取到任务 ID')
       }
@@ -104,10 +158,11 @@ export function useDownload() {
   }
 
   // 轮询任务状态
-  const pollStatus = async (id: string) => {
+  const pollStatus = async (id: string, mode: 'server' | 'local') => {
+    const client = mode === 'local' ? localResolverClient : apiClient
     const interval = setInterval(async () => {
       try {
-        const response = await apiClient.get<TaskStatus>(`/download/status/${id}`)
+        const response = await client.get<TaskStatus>(`/download/status/${id}`)
         const taskStatus = response.data
 
         progress.value = taskStatus.progress
@@ -146,6 +201,10 @@ export function useDownload() {
   // 下载文件
   const downloadFile = () => {
     if (!taskId.value) return
+    if (resolverMode.value === 'local') {
+      window.open(`${LOCAL_RESOLVER_BASE}/download/file/${taskId.value}`, '_blank')
+      return
+    }
     window.open(`/api/download/file/${taskId.value}`, '_blank')
   }
 
@@ -160,6 +219,7 @@ export function useDownload() {
     speed.value = '0KB/s'
     error.value = null
     loading.value = false
+    resolverMode.value = 'server'
   }
 
   onUnmounted(() => {
