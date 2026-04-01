@@ -48,7 +48,9 @@ const getPlatformColor = (platform: string) => {
   return colors[platform] || 'bg-blue-100 text-blue-700'
 }
 
-const thumbnailProxyUrl = computed(() => getThumbnailUrl(props.info.thumbnail, props.info.platform))
+const thumbnailProxyUrl = computed(
+  () => props.info.thumbnail_proxy_url || getThumbnailUrl(props.info.thumbnail, props.info.platform)
+)
 
 const formatDuration = (seconds: number) => {
   const minutes = Math.floor(seconds / 60)

@@ -59,6 +59,10 @@ class Settings(BaseSettings):
     STRIPE_PUBLISHABLE_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
     STRIPE_PRICE_ID: str = ""
+    LEMONSQUEEZY_API_KEY: str = ""
+    LEMONSQUEEZY_STORE_ID: str = ""
+    LEMONSQUEEZY_VARIANT_ID: str = ""
+    LEMONSQUEEZY_WEBHOOK_SECRET: str = ""
 
     # AI 配置（可选，未配置时使用本地规则回退）
     AI_PROVIDER: str = "openai_compatible"

@@ -1,0 +1,16 @@
+{
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.vidgrab.sunandyu.top"
+        }
+      ],
+      "destination": "https://vidgrab.sunandyu.top/:path*",
+      "permanent": true
+    }
+  ]
+}
+

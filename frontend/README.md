@@ -23,6 +23,21 @@ npm run dev
 npm run build
 ```
 
+## B站 412 本地解析模式
+
+当云端后端触发 B 站风控（`HTTP 412`）时，前端会自动尝试切换到“本地解析助手”。
+
+本地助手默认地址：`http://127.0.0.1:61337/api`  
+可通过环境变量覆盖：
+
+```bash
+VITE_LOCAL_RESOLVER_BASE_URL=http://127.0.0.1:61337/api
+```
+
+本地助手启动说明见：
+
+- `../local-resolver/README.md`
+
 ## 会员购买开发说明
 
 ### 1. 后端使用 mock 模式时

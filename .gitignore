@@ -4,6 +4,7 @@ backend/image_cache/
 backend/models/
 backend/app.db
 backend/test_*.db
+backend/test_app.db-journal
 
 # Local test media
 *.mp4
@@ -24,3 +25,6 @@ frontend/node_modules/
 .superpowers/
 backend/pip/
 .claude/settings.local.json
+
+# Local production env overrides
+.env.production

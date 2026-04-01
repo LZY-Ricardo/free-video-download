@@ -104,7 +104,7 @@ const handleDownload = (options: any) => {
         </p>
 
         <!-- 错误提示 -->
-        <div v-if="error" class="vg-alert vg-alert-error mt-2 p-2.5 text-sm">
+        <div v-if="error" class="vg-alert vg-alert-error mt-2 p-2.5 text-sm whitespace-pre-line">
           {{ error }}
         </div>
 

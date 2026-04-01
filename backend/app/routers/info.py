@@ -74,8 +74,10 @@ async def get_video_info(request: InfoRequest) -> dict:
 
     except ValueError as e:
         error_msg = str(e)
-        # 检查是否是抖音相关的错误
-        if 'cookie' in error_msg.lower() or 'douyin' in error_msg.lower():
+        # 仅在抖音链接场景下，才回退到抖音专用提示，避免误伤其他平台（如 B 站 412）
+        if is_douyin_url(request.url) and (
+            "cookie" in error_msg.lower() or "douyin" in error_msg.lower()
+        ):
             raise HTTPException(
                 status_code=400,
                 detail="抖音视频需要浏览器 cookies 才能下载。建议使用其他平台的视频，或使用命令行工具：yt-dlp --cookies-from-browser chrome \"视频链接\""

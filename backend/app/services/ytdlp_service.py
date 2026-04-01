@@ -58,7 +58,7 @@ class YTDLPService:
                     "formats": formats,
                 }
         except Exception as e:
-            error_detail = f"获取视频信息失败: {self._sanitize_error_message(str(e))}"
+            error_detail = f"获取视频信息失败: {self._humanize_platform_error(url, str(e))}"
             raise ValueError(error_detail)
 
     def download_video(
@@ -101,7 +101,7 @@ class YTDLPService:
                 file_path = ydl.prepare_filename(info)
                 return file_path
         except Exception as e:
-            raise ValueError(f"下载视频失败: {self._sanitize_error_message(str(e))}")
+            raise ValueError(f"下载视频失败: {self._humanize_platform_error(url, str(e))}")
 
     def get_direct_url(
         self, url: str, format: str = "best", quality: Optional[str] = None
@@ -145,7 +145,7 @@ class YTDLPService:
                     return formats[0].get("url", "")
                 raise ValueError("无法获取视频直链")
         except Exception as e:
-            raise ValueError(f"获取视频直链失败: {self._sanitize_error_message(str(e))}")
+            raise ValueError(f"获取视频直链失败: {self._humanize_platform_error(url, str(e))}")
 
     def _build_format_selector(self, format: str, quality: Optional[str]) -> str:
         """构建格式选择器"""
@@ -195,6 +195,22 @@ class YTDLPService:
     def _sanitize_error_message(self, message: str) -> str:
         """清洗第三方工具错误，避免前端显示 ANSI 颜色控制符。"""
         return self._strip_ansi(message)
+
+    def _humanize_platform_error(self, url: str, message: str) -> str:
+        """将第三方异常转成用户可读的业务错误。"""
+        cleaned = self._sanitize_error_message(message)
+        lower_msg = cleaned.lower()
+        lower_url = (url or "").lower()
+
+        is_bilibili = "bilibili.com" in lower_url or "b23.tv" in lower_url
+        if is_bilibili and "http error 412" in lower_msg:
+            return (
+                "B站返回 412 风控拦截（通常是服务器机房 IP 被识别为爬虫流量）。"
+                "这不是前端故障。建议改用家庭宽带代理/住宅代理出口，"
+                "或使用已登录浏览器 cookies 在本地命令行下载。"
+            )
+
+        return cleaned
 
     def _extract_formats(self, formats: List[dict]) -> List[dict]:
         """提取可用格式，包含详细信息"""
