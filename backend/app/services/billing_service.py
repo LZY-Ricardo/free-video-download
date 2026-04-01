@@ -3,6 +3,7 @@
 """
 from __future__ import annotations
 
+import httpx
 from uuid import uuid4
 
 import stripe
@@ -16,6 +17,7 @@ from app.services.membership_service import membership_service
 
 
 class BillingService:
+    LEMONSQUEEZY_CHECKOUT_ENDPOINT = "https://api.lemonsqueezy.com/v1/checkouts"
     PLAN_CODE = "vip_30d"
     AMOUNT_FEN = 1990
     CURRENCY = "cny"
@@ -36,6 +38,8 @@ class BillingService:
     def create_checkout_session(self, db: Session, user: User) -> dict:
         existing_order = self._find_open_order(db, user.id)
         if existing_order:
+            if settings.PAYMENT_PROVIDER_MODE == "lemonsqueezy":
+                return self._create_lemonsqueezy_checkout(db, user, existing_order)
             return self._build_existing_checkout_response(existing_order)
 
         order = MembershipOrder(
@@ -59,6 +63,9 @@ class BillingService:
                 "checkout_url": f"{settings.FRONTEND_BASE_URL}/?mock_checkout_order_id={order.id}",
                 "provider": "mock",
             }
+
+        if settings.PAYMENT_PROVIDER_MODE == "lemonsqueezy":
+            return self._create_lemonsqueezy_checkout(db, user, order)
 
         return self._create_stripe_checkout_session(db, user, order)
 
@@ -128,6 +135,74 @@ class BillingService:
             "order_id": order.id,
             "checkout_url": session["url"],
             "provider": "stripe",
+        }
+
+    def _create_lemonsqueezy_checkout(self, db: Session, user: User, order: MembershipOrder) -> dict:
+        if not settings.LEMONSQUEEZY_API_KEY:
+            raise ValueError("未配置 LEMONSQUEEZY_API_KEY")
+        if not settings.LEMONSQUEEZY_STORE_ID:
+            raise ValueError("未配置 LEMONSQUEEZY_STORE_ID")
+        if not settings.LEMONSQUEEZY_VARIANT_ID:
+            raise ValueError("未配置 LEMONSQUEEZY_VARIANT_ID")
+
+        payload = {
+            "data": {
+                "type": "checkouts",
+                "attributes": {
+                    "checkout_options": {
+                        "embed": False,
+                    },
+                    "checkout_data": {
+                        "custom": {
+                            "order_id": order.id,
+                            "user_id": user.id,
+                            "plan_code": self.PLAN_CODE,
+                        }
+                    },
+                },
+                "relationships": {
+                    "store": {
+                        "data": {
+                            "type": "stores",
+                            "id": str(settings.LEMONSQUEEZY_STORE_ID),
+                        }
+                    },
+                    "variant": {
+                        "data": {
+                            "type": "variants",
+                            "id": str(settings.LEMONSQUEEZY_VARIANT_ID),
+                        }
+                    },
+                },
+            }
+        }
+
+        headers = {
+            "Authorization": f"Bearer {settings.LEMONSQUEEZY_API_KEY}",
+            "Accept": "application/vnd.api+json",
+            "Content-Type": "application/vnd.api+json",
+        }
+
+        with httpx.Client(timeout=15) as client:
+            response = client.post(self.LEMONSQUEEZY_CHECKOUT_ENDPOINT, json=payload, headers=headers)
+
+        if response.status_code >= 400:
+            raise ValueError(f"Lemon Squeezy 创建结账失败: {response.text}")
+
+        body = response.json()
+        checkout_url = body.get("data", {}).get("attributes", {}).get("url")
+        checkout_id = body.get("data", {}).get("id")
+        if not checkout_url:
+            raise ValueError("Lemon Squeezy 返回缺少 checkout URL")
+
+        order.status = "checkout_created"
+        # 复用现有字段保存第三方 checkout id，避免引入新迁移。
+        order.stripe_checkout_session_id = checkout_id
+        db.commit()
+        return {
+            "order_id": order.id,
+            "checkout_url": checkout_url,
+            "provider": "lemonsqueezy",
         }
 
     def complete_mock_order(self, db: Session, order_id: str, user_id: str) -> MembershipOrder:

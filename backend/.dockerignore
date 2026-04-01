@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+.env
+downloads/
+models/
+pip/
+test_*.py
+verify.py
+

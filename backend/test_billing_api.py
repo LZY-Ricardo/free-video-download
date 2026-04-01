@@ -1,4 +1,7 @@
 import unittest
+import json
+import hmac
+import hashlib
 from unittest.mock import MagicMock, patch
 from types import SimpleNamespace
 
@@ -18,10 +21,18 @@ class TestBillingAPI(unittest.TestCase):
         self.original_secret = settings.STRIPE_SECRET_KEY
         self.original_price_id = settings.STRIPE_PRICE_ID
         self.original_webhook_secret = settings.STRIPE_WEBHOOK_SECRET
+        self.original_ls_api_key = settings.LEMONSQUEEZY_API_KEY
+        self.original_ls_store_id = settings.LEMONSQUEEZY_STORE_ID
+        self.original_ls_variant_id = settings.LEMONSQUEEZY_VARIANT_ID
+        self.original_ls_webhook_secret = settings.LEMONSQUEEZY_WEBHOOK_SECRET
         settings.PAYMENT_PROVIDER_MODE = "mock"
         settings.STRIPE_SECRET_KEY = ""
         settings.STRIPE_PRICE_ID = ""
         settings.STRIPE_WEBHOOK_SECRET = ""
+        settings.LEMONSQUEEZY_API_KEY = ""
+        settings.LEMONSQUEEZY_STORE_ID = ""
+        settings.LEMONSQUEEZY_VARIANT_ID = ""
+        settings.LEMONSQUEEZY_WEBHOOK_SECRET = ""
         Base.metadata.drop_all(bind=engine)
         Base.metadata.create_all(bind=engine)
         self.client = TestClient(app)
@@ -37,6 +48,10 @@ class TestBillingAPI(unittest.TestCase):
         settings.STRIPE_SECRET_KEY = self.original_secret
         settings.STRIPE_PRICE_ID = self.original_price_id
         settings.STRIPE_WEBHOOK_SECRET = self.original_webhook_secret
+        settings.LEMONSQUEEZY_API_KEY = self.original_ls_api_key
+        settings.LEMONSQUEEZY_STORE_ID = self.original_ls_store_id
+        settings.LEMONSQUEEZY_VARIANT_ID = self.original_ls_variant_id
+        settings.LEMONSQUEEZY_WEBHOOK_SECRET = self.original_ls_webhook_secret
 
     def _create_verified_user(self):
         with SessionLocal() as db:
@@ -228,6 +243,93 @@ class TestBillingAPI(unittest.TestCase):
         self.assertEqual(first_response.status_code, 200)
         self.assertEqual(second_response.status_code, 200)
         self.assertTrue(second_response.json()["duplicate"])
+
+        membership_response = self.client.get("/api/membership/me")
+        self.assertTrue(membership_response.json()["is_member"])
+
+    @patch("app.services.billing_service.httpx.Client")
+    def test_create_checkout_session_in_lemonsqueezy_mode(self, mock_httpx_client):
+        mock_response = MagicMock()
+        mock_response.status_code = 201
+        mock_response.json.return_value = {
+            "data": {
+                "id": "lsc_123",
+                "attributes": {
+                    "url": "https://vidgrab.lemonsqueezy.com/buy/abc123",
+                },
+            }
+        }
+        mock_client = MagicMock()
+        mock_client.__enter__.return_value = mock_client
+        mock_client.post.return_value = mock_response
+        mock_httpx_client.return_value = mock_client
+
+        original_mode = settings.PAYMENT_PROVIDER_MODE
+        try:
+            settings.PAYMENT_PROVIDER_MODE = "lemonsqueezy"
+            settings.LEMONSQUEEZY_API_KEY = "ls_api_xxx"
+            settings.LEMONSQUEEZY_STORE_ID = "1111"
+            settings.LEMONSQUEEZY_VARIANT_ID = "2222"
+
+            response = self.client.post("/api/billing/checkout-session")
+        finally:
+            settings.PAYMENT_PROVIDER_MODE = original_mode
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["provider"], "lemonsqueezy")
+        self.assertIn("lemonsqueezy.com", payload["checkout_url"])
+
+        _, kwargs = mock_client.post.call_args
+        custom = kwargs["json"]["data"]["attributes"]["checkout_data"]["custom"]
+        self.assertEqual(custom["plan_code"], "vip_30d")
+        self.assertEqual(custom["user_id"], self.user["id"])
+
+    def test_lemonsqueezy_order_created_webhook_activates_membership(self):
+        original_mode = settings.PAYMENT_PROVIDER_MODE
+        original_secret = settings.LEMONSQUEEZY_WEBHOOK_SECRET
+        try:
+            settings.PAYMENT_PROVIDER_MODE = "mock"
+            checkout_response = self.client.post("/api/billing/checkout-session")
+            order_id = checkout_response.json()["order_id"]
+
+            settings.PAYMENT_PROVIDER_MODE = "lemonsqueezy"
+            settings.LEMONSQUEEZY_WEBHOOK_SECRET = "ls_whsec_123"
+
+            event = {
+                "meta": {
+                    "event_name": "order_created",
+                    "test_mode": True,
+                    "custom_data": {
+                        "order_id": order_id,
+                    },
+                },
+                "data": {"id": "123456"},
+            }
+            payload = json.dumps(event).encode("utf-8")
+            signature = hmac.new(
+                settings.LEMONSQUEEZY_WEBHOOK_SECRET.encode("utf-8"),
+                payload,
+                hashlib.sha256,
+            ).hexdigest()
+
+            response = self.client.post(
+                "/api/billing/webhook",
+                content=payload,
+                headers={"X-Signature": signature},
+            )
+            duplicate_response = self.client.post(
+                "/api/billing/webhook",
+                content=payload,
+                headers={"X-Signature": signature},
+            )
+        finally:
+            settings.PAYMENT_PROVIDER_MODE = original_mode
+            settings.LEMONSQUEEZY_WEBHOOK_SECRET = original_secret
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(duplicate_response.status_code, 200)
+        self.assertTrue(duplicate_response.json()["duplicate"])
 
         membership_response = self.client.get("/api/membership/me")
         self.assertTrue(membership_response.json()["is_member"])

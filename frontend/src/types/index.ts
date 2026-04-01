@@ -71,7 +71,7 @@ export interface MembershipStatusResponse {
 export interface CheckoutSessionResponse {
   order_id: string
   checkout_url: string
-  provider: 'mock' | 'stripe'
+  provider: 'mock' | 'stripe' | 'lemonsqueezy'
 }
 
 export interface DownloadResponse {

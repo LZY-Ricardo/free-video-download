@@ -30,6 +30,11 @@ STRIPE_SECRET_KEY=
 STRIPE_PUBLISHABLE_KEY=
 STRIPE_WEBHOOK_SECRET=
 STRIPE_PRICE_ID=
+
+LEMONSQUEEZY_API_KEY=
+LEMONSQUEEZY_STORE_ID=
+LEMONSQUEEZY_VARIANT_ID=
+LEMONSQUEEZY_WEBHOOK_SECRET=
 ```
 
 说明：
@@ -37,6 +42,7 @@ STRIPE_PRICE_ID=
 - `MAIL_MODE=local` 时，注册接口会在响应中返回 `debug_verify_url`，便于开发环境直接验证邮箱。
 - `PAYMENT_PROVIDER_MODE=mock` 时，不会访问外网 Stripe，而是走本地模拟支付。
 - `PAYMENT_PROVIDER_MODE=stripe` 时，需要配置 Stripe 测试环境密钥和 `price_id`。
+- `PAYMENT_PROVIDER_MODE=lemonsqueezy` 时，需要配置 Lemon Squeezy API Key、Store ID、Variant ID 与 webhook secret。
 - 使用 Supabase 时，若数据库密码含 `@ : / #` 等字符，需要 URL 编码后再写入 `DATABASE_URL`。
 
 ## 运行服务
@@ -205,6 +211,24 @@ stripe listen --forward-to localhost:8000/api/billing/webhook --print-secret
 
 - https://docs.stripe.com/testing?testing-method=payment-methods
 - https://docs.stripe.com/stripe-cli/use-cli
+
+### 3. Lemon Squeezy 模式（推荐上线替代 Stripe）
+
+配置：
+
+```env
+PAYMENT_PROVIDER_MODE=lemonsqueezy
+LEMONSQUEEZY_API_KEY=ls_api_xxx
+LEMONSQUEEZY_STORE_ID=xxxx
+LEMONSQUEEZY_VARIANT_ID=xxxx
+LEMONSQUEEZY_WEBHOOK_SECRET=whsec_xxx
+```
+
+流程：
+
+1. 前端调用 `/api/billing/checkout-session` 获取托管支付页链接。
+2. 用户完成支付后，Lemon Squeezy 向 `/api/billing/webhook` 推送 `order_created` 事件。
+3. 后端按 `meta.custom_data.order_id` 激活会员。
 
 ## AI 配置（可选）
 
