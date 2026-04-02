@@ -11,6 +11,8 @@ const authModalOpen = ref(false)
 const authModalMode = ref<'login' | 'register'>('login')
 const notice = ref<string | null>(null)
 const mockCheckoutOrderId = ref<string | null>(null)
+const paymentOpen = ((import.meta.env.VITE_PAYMENT_OPEN as string | undefined)?.trim() || 'false') === 'true'
+const paymentClosedNotice = '支付服务暂未开放，敬请期待'
 
 const {
   authenticated,
@@ -140,6 +142,11 @@ const handleLogout = async () => {
 }
 
 const handleStartCheckout = async () => {
+  if (!paymentOpen) {
+    setNotice(paymentClosedNotice)
+    return
+  }
+
   if (!authenticated.value) {
     openAuthModal('login')
     return
@@ -222,6 +229,7 @@ onMounted(async () => {
               :user="currentUser"
               :membership="membership"
               :checkout-loading="checkoutLoading"
+              :payment-open="paymentOpen"
               @start-checkout="handleStartCheckout"
               @logout="handleLogout"
             />
@@ -243,12 +251,12 @@ onMounted(async () => {
             </button>
             <button
               class="vg-btn-soft flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm"
-              @click="openAuthModal('login')"
+              @click="handleStartCheckout"
             >
               <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
               </svg>
-              开通 VIP
+              {{ paymentOpen ? '开通 VIP' : '敬请期待' }}
             </button>
           </template>
         </div>
@@ -294,6 +302,7 @@ onMounted(async () => {
         :membership="membership"
         :membership-loading="membershipLoading"
         :checkout-loading="checkoutLoading"
+        :payment-open="paymentOpen"
         @open-auth="openAuthModal"
         @start-checkout="handleStartCheckout"
       />
@@ -454,9 +463,11 @@ onMounted(async () => {
                 :disabled="checkoutLoading"
                 @click="handleStartCheckout"
               >
-                {{ checkoutLoading ? '跳转支付中...' : authenticated ? (membership?.is_member ? '续费会员' : '立即开通') : '登录后开通' }}
+                {{ paymentOpen ? (checkoutLoading ? '跳转支付中...' : authenticated ? (membership?.is_member ? '续费会员' : '立即开通') : '登录后开通') : '敬请期待' }}
               </button>
-              <p class="plan-note mt-2 text-center text-xs text-blue-700/80">开通后立即解锁 AI 学习助手全部能力</p>
+              <p class="plan-note mt-2 text-center text-xs text-blue-700/80">
+                {{ paymentOpen ? '开通后立即解锁 AI 学习助手全部能力' : '支付功能暂未开放，现有会员账号权益不受影响' }}
+              </p>
             </div>
           </div>
         </div>
@@ -496,7 +507,7 @@ onMounted(async () => {
         <div class="flex flex-col md:flex-row items-center justify-between gap-4">
           <!-- 版权信息 -->
           <div class="text-sm text-gray-500">
-            © 2026 VidGrab. 仅供学习使用，请遵守相关法律法规
+            © 2026 VidGrab. 仅供学习与研究，请遵守当地法律法规
           </div>
           <!-- 右侧链接 -->
           <div class="flex items-center gap-6 text-sm text-gray-500">
@@ -504,9 +515,6 @@ onMounted(async () => {
             <a href="#" class="footer-link hover:text-gray-900 transition-colors">隐私政策</a>
             <a href="#" class="footer-link hover:text-gray-900 transition-colors">联系我们</a>
           </div>
-        </div>
-        <div class="mt-4 pt-4 border-t border-gray-50 text-center text-xs text-gray-400">
-          基于 yt-dlp 开源项目构建
         </div>
       </div>
     </footer>

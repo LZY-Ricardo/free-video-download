@@ -21,10 +21,12 @@ const props = withDefaults(defineProps<{
   membership: MembershipStatusResponse | null
   membershipLoading?: boolean
   checkoutLoading?: boolean
+  paymentOpen?: boolean
 }>(), {
   analyzeTrigger: 0,
   membershipLoading: false,
   checkoutLoading: false,
+  paymentOpen: false,
 })
 
 const emit = defineEmits<{
@@ -262,6 +264,7 @@ onBeforeUnmount(() => {
       :authenticated="props.authenticated"
       :membership="props.membership"
       :checkout-loading="props.checkoutLoading"
+      :payment-open="props.paymentOpen"
       @open-auth="openAuth"
       @checkout="startCheckout"
     />

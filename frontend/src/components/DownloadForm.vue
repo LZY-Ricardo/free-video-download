@@ -12,6 +12,7 @@ defineProps<{
   membership: MembershipStatusResponse | null
   membershipLoading: boolean
   checkoutLoading: boolean
+  paymentOpen: boolean
 }>()
 
 defineEmits<{
@@ -168,6 +169,7 @@ const handleDownload = (options: any) => {
               :membership="membership"
               :membership-loading="membershipLoading"
               :checkout-loading="checkoutLoading"
+              :payment-open="paymentOpen"
               @open-auth="$emit('open-auth', $event)"
               @start-checkout="$emit('start-checkout')"
             />

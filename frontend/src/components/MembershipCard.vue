@@ -6,9 +6,11 @@ const props = withDefaults(defineProps<{
   membership: MembershipStatusResponse | null
   loading?: boolean
   checkoutLoading?: boolean
+  paymentOpen?: boolean
 }>(), {
   loading: false,
   checkoutLoading: false,
+  paymentOpen: false,
 })
 
 const emit = defineEmits<{
@@ -80,7 +82,7 @@ const startCheckout = () => emit('checkout')
         :disabled="checkoutLoading"
         @click="startCheckout"
       >
-        {{ checkoutLoading ? '跳转支付中...' : membership?.is_member ? '续费会员' : '立即开通会员' }}
+        {{ props.paymentOpen ? (checkoutLoading ? '跳转支付中...' : membership?.is_member ? '续费会员' : '立即开通会员') : '敬请期待' }}
       </button>
     </div>
   </div>

@@ -29,6 +29,8 @@ def create_checkout_session(
     db: Session = Depends(get_db),
     user=Depends(require_current_user),
 ):
+    if settings.PAYMENT_PROVIDER_MODE == "disabled":
+        raise HTTPException(status_code=503, detail="支付服务暂未开放，敬请期待")
     try:
         return billing_service.create_checkout_session(db, user)
     except ValueError as exc:

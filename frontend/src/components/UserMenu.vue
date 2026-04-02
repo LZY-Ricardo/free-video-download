@@ -7,6 +7,7 @@ const props = defineProps<{
   user: UserProfile | null
   membership: MembershipStatusResponse | null
   checkoutLoading: boolean
+  paymentOpen: boolean
 }>()
 
 const emit = defineEmits<{
@@ -26,6 +27,9 @@ const memberSummary = computed(() => {
 })
 
 const checkoutLabel = computed(() => {
+  if (!props.paymentOpen) {
+    return '支付敬请期待'
+  }
   if (props.checkoutLoading) {
     return '正在跳转...'
   }
