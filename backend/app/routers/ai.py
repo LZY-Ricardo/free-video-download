@@ -16,6 +16,7 @@ from app.models import (
     AnalyzeTaskStatusResponse,
     ChatRequest,
     ChatResponse,
+    LocalAnalyzeRequest,
     VideoAnalysisResponse,
 )
 from app.services.ai_quota_service import ai_quota_service
@@ -115,6 +116,33 @@ async def analyze_video(
     try:
         access_mode = _resolve_ai_access_mode(db, user)
         return video_ai_service.analyze_video(request.url, user.id, access_mode)
+    except HTTPException:
+        raise
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"AI 分析失败: {exc}")
+
+
+@router.post("/analyze/local", response_model=VideoAnalysisResponse)
+async def analyze_local_video(
+    request: LocalAnalyzeRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_current_user),
+):
+    """
+    基于桌面端本地已准备好的转录执行 AI 分析，避免云端再次抓取视频。
+    """
+    try:
+        access_mode = _resolve_ai_access_mode(db, user)
+        return video_ai_service.analyze_transcript(
+            video_title=request.video_title,
+            transcript=request.transcript,
+            user_id=user.id,
+            access_mode=access_mode,
+            transcript_language=request.transcript_language,
+            source_url=request.source_url,
+        )
     except HTTPException:
         raise
     except ValueError as exc:

@@ -157,6 +157,78 @@ class TestAIAPI(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("字幕缺失", response.json()["detail"])
 
+    def test_analyze_local_video_success(self):
+        mock_result = VideoAnalysisResponse(
+            analysis_id="local-analysis-id",
+            video_title="本地测试视频",
+            transcript_language="zh",
+            summary=VideoSummary(
+                overview="这是本地摘要",
+                key_points=["本地要点1", "本地要点2"],
+                sections=[
+                    SummarySection(title="章节1", start="00:00:05", summary="章节摘要"),
+                ],
+            ),
+            transcript=[
+                TranscriptSegment(
+                    start=5,
+                    end=10,
+                    timestamp="00:00:05",
+                    text="本地转录内容",
+                )
+            ],
+            mind_map=MindMapNode(
+                id="root",
+                label="本地测试视频",
+                children=[],
+            ),
+        )
+
+        with patch("app.routers.ai.video_ai_service.analyze_transcript", return_value=mock_result) as mock_analyze:
+            response = self.client.post(
+                "/api/ai/analyze/local",
+                json={
+                    "source_url": "https://www.bilibili.com/video/BV1test",
+                    "video_title": "本地测试视频",
+                    "transcript_language": "zh",
+                    "transcript": [
+                        {
+                            "start": 5,
+                            "end": 10,
+                            "timestamp": "00:00:05",
+                            "text": "本地转录内容",
+                        }
+                    ],
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["analysis_id"], "local-analysis-id")
+        self.assertEqual(payload["video_title"], "本地测试视频")
+        mock_analyze.assert_called_once()
+
+    def test_analyze_local_video_bad_request(self):
+        with patch("app.routers.ai.video_ai_service.analyze_transcript", side_effect=ValueError("本地转录为空")):
+            response = self.client.post(
+                "/api/ai/analyze/local",
+                json={
+                    "video_title": "空转录视频",
+                    "transcript_language": "zh",
+                    "transcript": [
+                        {
+                            "start": 0,
+                            "end": 1,
+                            "timestamp": "00:00:00",
+                            "text": "占位文本",
+                        }
+                    ],
+                },
+            )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("本地转录为空", response.json()["detail"])
+
     def test_chat_success(self):
         mock_result = ChatResponse(
             answer="这是回答",

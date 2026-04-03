@@ -118,6 +118,15 @@ class AnalyzeRequest(BaseModel):
     url: str = Field(..., description="视频 URL")
 
 
+class LocalAnalyzeRequest(BaseModel):
+    """基于本地已准备转录的 AI 分析请求"""
+
+    video_title: str = Field(..., min_length=1, description="视频标题")
+    transcript: List["TranscriptSegment"] = Field(..., min_length=1, description="本地准备的转录片段")
+    transcript_language: Optional[str] = Field(default=None, description="转录语言")
+    source_url: Optional[str] = Field(default=None, description="来源视频 URL")
+
+
 class AnalyzeStartResponse(BaseModel):
     """AI 分析任务创建响应"""
 

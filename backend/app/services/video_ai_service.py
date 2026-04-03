@@ -108,6 +108,28 @@ class VideoAIService:
         """
         return self._analyze_video_sync(url, user_id=user_id, access_mode=access_mode)
 
+    def analyze_transcript(
+        self,
+        video_title: str,
+        transcript: List[TranscriptSegment],
+        user_id: str,
+        access_mode: str,
+        transcript_language: Optional[str] = None,
+        source_url: Optional[str] = None,
+    ) -> VideoAnalysisResponse:
+        """
+        基于外部已准备好的转录文本执行 AI 分析。
+        source_url 仅用于审计/扩展，当前不触发任何远程抓取。
+        """
+        del source_url
+        return self._analyze_prepared_transcript(
+            video_title=video_title,
+            transcript=transcript,
+            user_id=user_id,
+            access_mode=access_mode,
+            transcript_language=transcript_language,
+        )
+
     def start_analysis(self, url: str, user_id: str, access_mode: str) -> str:
         """
         创建异步分析任务并立即返回任务 ID
@@ -271,37 +293,64 @@ class VideoAIService:
         transcript = self._compact_transcript(transcript)
 
         title = info.get("title") or "未命名视频"
+        response = self._analyze_prepared_transcript(
+            video_title=title,
+            transcript=transcript,
+            user_id=user_id,
+            access_mode=access_mode,
+            transcript_language=language,
+            progress_callback=progress_callback,
+        )
+        if progress_callback:
+            progress_callback(100, "分析完成")
+        return response
+
+    def _analyze_prepared_transcript(
+        self,
+        video_title: str,
+        transcript: List[TranscriptSegment],
+        user_id: str,
+        access_mode: str,
+        transcript_language: Optional[str] = None,
+        progress_callback: Optional[Callable[[float, str], None]] = None,
+    ) -> VideoAnalysisResponse:
+        normalized_title = (video_title or "").strip() or "未命名视频"
+        if not transcript:
+            raise ValueError("本地转录为空，无法执行 AI 分析。")
+
+        normalized_transcript = self._normalize_transcript_script(transcript, transcript_language)
+        normalized_transcript = self._compact_transcript(normalized_transcript)
+        if not normalized_transcript:
+            raise ValueError("本地转录为空，无法执行 AI 分析。")
+
         if progress_callback:
             progress_callback(86, "生成摘要")
-        summary = self._generate_summary(title, transcript)
+        summary = self._generate_summary(normalized_title, normalized_transcript)
         if progress_callback:
             progress_callback(94, "生成思维导图")
-        mind_map = self._build_mind_map(title, summary)
+        mind_map = self._build_mind_map(normalized_title, summary)
 
         analysis_id = str(uuid.uuid4())
         record = AnalysisRecord(
             analysis_id=analysis_id,
             user_id=user_id,
             access_mode=access_mode,
-            video_title=title,
-            transcript_language=language,
-            transcript=transcript,
+            video_title=normalized_title,
+            transcript_language=transcript_language,
+            transcript=normalized_transcript,
             summary=summary,
             mind_map=mind_map,
         )
         self.analysis_cache[analysis_id] = record
 
-        response = VideoAnalysisResponse(
+        return VideoAnalysisResponse(
             analysis_id=analysis_id,
-            video_title=title,
-            transcript_language=language,
+            video_title=normalized_title,
+            transcript_language=transcript_language,
             summary=summary,
-            transcript=transcript,
+            transcript=normalized_transcript,
             mind_map=mind_map,
         )
-        if progress_callback:
-            progress_callback(100, "分析完成")
-        return response
 
     def ask_question(self, analysis_id: str, user_id: str, question: str) -> ChatResponse:
         """
