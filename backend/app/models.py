@@ -39,6 +39,8 @@ class LoginResponse(BaseModel):
     """登录响应"""
 
     user: UserProfile
+    access_token: str
+    token_type: str = "bearer"
 
 
 class CurrentUserResponse(BaseModel):

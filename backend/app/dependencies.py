@@ -3,7 +3,7 @@ FastAPI 依赖
 """
 from __future__ import annotations
 
-from fastapi import Cookie, Depends, HTTPException
+from fastapi import Cookie, Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -15,14 +15,21 @@ from app.services.membership_service import membership_service
 
 
 def get_current_user_optional(
+    authorization: str | None = Header(default=None),
     token: str | None = Cookie(default=None, alias=settings.ACCESS_TOKEN_COOKIE_NAME),
     db: Session = Depends(get_db),
 ) -> User | None:
-    if not token:
+    resolved_token = token
+    if authorization:
+        scheme, _, credentials = authorization.partition(" ")
+        if scheme.lower() == "bearer" and credentials:
+            resolved_token = credentials
+
+    if not resolved_token:
         return None
 
     try:
-        payload = decode_access_token(token)
+        payload = decode_access_token(resolved_token)
     except ValueError:
         return None
 

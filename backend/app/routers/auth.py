@@ -68,7 +68,11 @@ def login(
         samesite="lax",
         secure=_should_use_secure_cookie(),
     )
-    return LoginResponse(user=auth_service.serialize_user(user))
+    return LoginResponse(
+        user=auth_service.serialize_user(user),
+        access_token=token,
+        token_type="bearer",
+    )
 
 
 @router.post("/logout")

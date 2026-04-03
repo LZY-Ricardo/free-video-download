@@ -55,6 +55,25 @@ class TestMembershipAPI(unittest.TestCase):
         self.assertFalse(payload["is_member"])
         self.assertEqual(payload["status"], "inactive")
 
+    def test_membership_me_accepts_bearer_token(self):
+        user = self._create_verified_user(email="token-member@example.com")
+        login_response = self._login(user["email"], user["password"])
+        access_token = login_response.json()["access_token"]
+
+        fresh_client = TestClient(app)
+        try:
+            response = fresh_client.get(
+                "/api/membership/me",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+        finally:
+            fresh_client.close()
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertFalse(payload["is_member"])
+        self.assertEqual(payload["status"], "inactive")
+
     @patch("app.routers.ai.video_ai_service.analyze_video")
     def test_ai_analyze_requires_login(self, mock_analyze_video):
         mock_analyze_video.return_value = VideoAnalysisResponse(

@@ -95,6 +95,40 @@ class TestAIAPI(unittest.TestCase):
         self.assertEqual(payload["video_title"], "测试视频")
         self.assertEqual(len(payload["transcript"]), 1)
 
+    def test_analyze_video_accepts_bearer_token(self):
+        fresh_client = TestClient(app)
+        try:
+            login_response = fresh_client.post(
+                "/api/auth/login",
+                json={"email": self.user["email"], "password": self.user["password"]},
+            )
+            access_token = login_response.json()["access_token"]
+
+            mock_result = VideoAnalysisResponse(
+                analysis_id="analysis-bearer",
+                video_title="Bearer 测试视频",
+                transcript_language="zh",
+                summary=VideoSummary(
+                    overview="这是摘要",
+                    key_points=["要点1"],
+                    sections=[SummarySection(title="章节1", start="00:00:10", summary="章节摘要")],
+                ),
+                transcript=[TranscriptSegment(start=10, end=15, timestamp="00:00:10", text="第一段内容")],
+                mind_map=MindMapNode(id="root", label="测试视频", children=[]),
+            )
+
+            with patch("app.routers.ai.video_ai_service.analyze_video", return_value=mock_result):
+                response = fresh_client.post(
+                    "/api/ai/analyze",
+                    json={"url": "https://example.com/video"},
+                    headers={"Authorization": f"Bearer {access_token}"},
+                )
+        finally:
+            fresh_client.close()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["analysis_id"], "analysis-bearer")
+
     def test_start_analyze_video(self):
         with patch("app.routers.ai.video_ai_service.start_analysis", return_value="task-123"):
             response = self.client.post("/api/ai/analyze/start", json={"url": "https://example.com/video"})

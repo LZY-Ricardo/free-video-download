@@ -8,7 +8,7 @@ services:
     env_file:
       - ./.env.production
     environment:
-      ALLOWED_ORIGINS: '["https://vidgrab.sunandyu.top"]'
+      ALLOWED_ORIGINS: '["https://vidgrab.sunandyu.top","http://127.0.0.1:1420","http://localhost:1420","tauri://localhost","https://tauri.localhost"]'
     volumes:
       - ./backend/downloads:/app/downloads
       - ./backend/models:/app/models

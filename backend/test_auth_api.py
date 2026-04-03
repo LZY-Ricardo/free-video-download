@@ -81,6 +81,38 @@ class TestAuthAPI(unittest.TestCase):
         self.assertTrue(me_response.json()["authenticated"])
         self.assertEqual(me_response.json()["user"]["email"], "user@example.com")
 
+    def test_login_returns_access_token_and_auth_me_accepts_bearer_token(self):
+        register_response = self.client.post(
+            "/api/auth/register",
+            json={
+                "email": "token-user@example.com",
+                "password": "password123",
+            },
+        )
+        token = register_response.json()["debug_verify_url"].split("token=")[1]
+        self.client.get(f"/api/auth/verify-email?token={token}")
+
+        login_response = self.client.post(
+            "/api/auth/login",
+            json={
+                "email": "token-user@example.com",
+                "password": "password123",
+            },
+        )
+
+        self.assertEqual(login_response.status_code, 200)
+        payload = login_response.json()
+        self.assertEqual(payload["token_type"], "bearer")
+        self.assertTrue(payload["access_token"])
+
+        me_response = self.client.get(
+            "/api/auth/me",
+            headers={"Authorization": f"Bearer {payload['access_token']}"},
+        )
+        self.assertEqual(me_response.status_code, 200)
+        self.assertTrue(me_response.json()["authenticated"])
+        self.assertEqual(me_response.json()["user"]["email"], "token-user@example.com")
+
     def test_logout_clears_cookie(self):
         register_response = self.client.post(
             "/api/auth/register",
