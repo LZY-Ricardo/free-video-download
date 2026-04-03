@@ -57,3 +57,46 @@ DNS 记录建议：
 
 根域名 `your-domain.com`：
 - 可在 DNS 中做 `@ -> www` 跳转，或在 Vercel 内设置根域到 `www` 的重定向。
+
+## 7. 当前线上环境维护清单
+
+当前实际部署目录：
+
+```bash
+/root/free-video-download
+```
+
+当前推荐的标准更新流程：
+
+```bash
+cd /root/free-video-download
+git fetch origin
+git reset --hard origin/main
+docker compose up -d --build api
+docker compose ps
+```
+
+如需查看 API 日志：
+
+```bash
+cd /root/free-video-download
+docker compose logs --tail=100 api
+```
+
+当前线上关键配置检查：
+
+```bash
+cd /root/free-video-download
+grep -n 'MAIL_MODE\|APP_BASE_URL\|FRONTEND_BASE_URL' .env.production
+```
+
+当前线上已验证通过的关键链路：
+- 注册接口 `/api/auth/register`
+- 邮箱验证 `/api/auth/verify-email`
+- 登录态接口 `/api/auth/me`
+- 会员状态接口 `/api/membership/me`
+
+注意事项：
+- 生产环境配置以 `.env.production` 为准，不要把临时文件当成正式配置。
+- 不要再直接手改服务器 Python 文件；先改 Git 仓库，再通过 `git fetch` + `git reset --hard origin/main` 收口部署。
+- 如果线上再次出现“本地正常、服务器异常”，先执行 `git status --short` 检查服务器部署目录是否漂移。
