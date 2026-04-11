@@ -19,9 +19,13 @@ const open = ref(false)
 const rootRef = ref<HTMLElement | null>(null)
 
 const isMember = computed(() => !!props.membership?.is_member)
+const isLifetimeMember = computed(() => props.membership?.plan_code === 'vip_lifetime')
 const memberSummary = computed(() => {
   if (!props.membership?.is_member) {
     return '当前为免费版'
+  }
+  if (isLifetimeMember.value) {
+    return '永久会员已生效'
   }
   return `VIP 有效期还剩 ${props.membership.remaining_days} 天`
 })
@@ -155,7 +159,7 @@ onBeforeUnmount(() => {
           </div>
           <p class="mt-1 text-sm text-slate-700">{{ memberSummary }}</p>
           <p class="mt-1 text-xs text-slate-500">
-            {{ isMember ? '已解锁 AI 学习助手全部能力' : '开通后可解锁 AI 学习助手全部能力' }}
+            {{ isMember ? (isLifetimeMember ? '已永久解锁 AI 学习助手全部能力' : '已解锁 AI 学习助手全部能力') : '开通后可解锁 AI 学习助手全部能力' }}
           </p>
           <button
             class="menu-cta mt-3 w-full rounded-lg px-3 py-2 text-sm font-medium text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:bg-slate-300"

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { MembershipStatusResponse } from '@/types'
 
 const props = withDefaults(defineProps<{
@@ -21,6 +22,7 @@ const emit = defineEmits<{
 const openLogin = () => emit('open-auth', 'login')
 const openRegister = () => emit('open-auth', 'register')
 const startCheckout = () => emit('checkout')
+const isLifetimeMember = computed(() => props.membership?.plan_code === 'vip_lifetime')
 </script>
 
 <template>
@@ -52,8 +54,13 @@ const startCheckout = () => emit('checkout')
     </div>
 
     <div v-else-if="authenticated && membership?.is_member" class="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-      当前会员有效，剩余 {{ membership.remaining_days }} 天。
-      <span v-if="membership.expires_at">到期时间：{{ membership.expires_at }}</span>
+      <template v-if="isLifetimeMember">
+        当前账号已开通永久会员。
+      </template>
+      <template v-else>
+        当前会员有效，剩余 {{ membership.remaining_days }} 天。
+        <span v-if="membership.expires_at">到期时间：{{ membership.expires_at }}</span>
+      </template>
     </div>
 
     <div v-else-if="authenticated" class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   progress: number
   speed: string
   status: string
@@ -7,6 +7,8 @@ withDefaults(defineProps<{
 }>(), {
   compact: false,
 })
+
+const isCompleted = props.status === 'completed'
 </script>
 
 <template>
@@ -28,14 +30,21 @@ withDefaults(defineProps<{
 
         <div>
           <h3 :class="compact ? 'text-sm font-semibold text-gray-900' : 'font-semibold text-gray-900'">
-            {{ status === 'downloading' ? '正在下载' : '下载完成' }}
+            {{ isCompleted ? '下载完成' : '正在下载' }}
           </h3>
-          <p :class="compact ? 'text-xs text-gray-500' : 'text-sm text-gray-500'">{{ speed }}</p>
+          <p :class="compact ? 'text-xs text-gray-500' : 'text-sm text-gray-500'">
+            {{ isCompleted ? '文件已就绪，可直接保存到本地' : speed }}
+          </p>
         </div>
       </div>
 
-      <div :class="compact ? 'text-xl font-semibold text-gray-900' : 'text-2xl font-semibold text-gray-900'">
-        {{ progress.toFixed(1) }}%
+      <div
+        :class="[
+          compact ? 'text-xl font-semibold' : 'text-2xl font-semibold',
+          isCompleted ? 'text-green-600' : 'text-gray-900',
+        ]"
+      >
+        {{ isCompleted ? '100%' : `${progress.toFixed(1)}%` }}
       </div>
     </div>
 
@@ -44,14 +53,14 @@ withDefaults(defineProps<{
       <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
         <div
           class="h-full rounded-full transition-all duration-300 ease-out"
-          :class="status === 'completed' ? 'bg-green-500' : 'bg-blue-500'"
-          :style="{ width: `${progress}%` }"
+          :class="isCompleted ? 'bg-green-500' : 'bg-blue-500'"
+          :style="{ width: `${isCompleted ? 100 : progress}%` }"
         />
       </div>
     </div>
 
     <!-- 下载完成后的下载按钮 -->
-    <div v-if="status === 'completed'" class="flex gap-3">
+    <div v-if="isCompleted" class="flex gap-3">
       <button
         @click="$emit('download-file')"
         :class="[

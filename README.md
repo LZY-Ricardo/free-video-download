@@ -33,7 +33,44 @@ git clone <repository-url>
 cd free-video-download
 ```
 
-### 2. 启动后端
+### 2. 一键快速启动
+
+Windows：
+
+```powershell
+./quick-start.cmd
+```
+
+PowerShell：
+
+```powershell
+./quick-start.ps1
+```
+
+脚本会自动完成：
+
+- 创建 `backend/.venv`
+- 安装后端依赖
+- 安装前端依赖
+- 分别拉起前端和后端开发服务
+
+默认地址：
+
+- 前端：`http://localhost:5173`
+- 后端：`http://localhost:8000`
+- API 文档：`http://localhost:8000/docs`
+
+可选参数：
+
+```powershell
+./quick-start.ps1 -InstallOnly
+./quick-start.ps1 -SkipInstall
+./quick-start.ps1 -NoFrontend
+./quick-start.ps1 -NoBackend
+./quick-start.ps1 -ForceInstall
+```
+
+### 3. 手动启动后端
 
 ```bash
 cd backend
@@ -51,7 +88,7 @@ uvicorn app.main:app --reload
 
 API 文档：`http://localhost:8000/docs`
 
-### 3. 启动前端
+### 4. 手动启动前端
 
 ```bash
 cd frontend
@@ -65,7 +102,7 @@ npm run dev
 
 前端将运行在 `http://localhost:5173`
 
-### 4. 使用应用
+### 5. 使用应用
 
 1. 在浏览器中打开 `http://localhost:5173`
 2. 粘贴视频链接（支持 YouTube、Bilibili 等）

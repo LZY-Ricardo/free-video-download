@@ -10,6 +10,7 @@ from app.config import settings
 from app.database import get_db
 from app.dependencies import require_current_user
 from app.services.billing_service import billing_service
+from app.services.membership_service import membership_service
 
 
 router = APIRouter(prefix="/api/dev/mock-billing", tags=["mock-billing"])
@@ -31,3 +32,22 @@ def complete_mock_order(
         raise HTTPException(status_code=403, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/grant-lifetime")
+def grant_lifetime_membership(
+    db: Session = Depends(get_db),
+    user=Depends(require_current_user),
+):
+    if not settings.DEBUG:
+        raise HTTPException(status_code=404, detail="开发接口未启用")
+
+    membership = membership_service.activate_lifetime_membership(db, user.id)
+    db.commit()
+    status = membership_service.get_membership_status(db, user.id)
+    return {
+        "message": "永久会员已开通",
+        "user_id": user.id,
+        "plan_code": membership.plan_code,
+        "is_member": status.is_member,
+    }

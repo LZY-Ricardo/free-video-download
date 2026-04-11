@@ -2,6 +2,7 @@ import { onUnmounted, ref } from 'vue'
 import type { VideoInfo, TaskStatus } from '@/types'
 import apiClient from '@/api/client'
 import localResolverClient, { LOCAL_RESOLVER_BASE } from '@/api/localResolverClient'
+import { getDisplayProgress } from '@/utils/downloadProgress'
 
 export function useDownload() {
   const url = ref('')
@@ -165,18 +166,22 @@ export function useDownload() {
         const response = await client.get<TaskStatus>(`/download/status/${id}`)
         const taskStatus = response.data
 
-        progress.value = taskStatus.progress
-        speed.value = taskStatus.speed
-
         if (taskStatus.status === 'completed') {
           status.value = 'completed'
+          progress.value = getDisplayProgress('completed', taskStatus.progress)
+          speed.value = taskStatus.speed
           loading.value = false
           clearInterval(interval)
         } else if (taskStatus.status === 'failed') {
+          progress.value = taskStatus.progress
+          speed.value = taskStatus.speed
           error.value = taskStatus.error || '下载失败'
           status.value = 'error'
           loading.value = false
           clearInterval(interval)
+        } else {
+          progress.value = getDisplayProgress('downloading', taskStatus.progress)
+          speed.value = taskStatus.speed
         }
       } catch (err: any) {
         // 如果是 404 错误（任务不存在），可能是下载已完成但任务被清理
@@ -185,6 +190,7 @@ export function useDownload() {
           // 检查是否已经有进度
           if (progress.value > 0) {
             status.value = 'completed'
+            progress.value = getDisplayProgress('completed', progress.value)
             loading.value = false
             clearInterval(interval)
             return

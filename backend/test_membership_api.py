@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
 import test_env  # noqa: F401
 from app.database import Base, SessionLocal, engine
@@ -9,6 +10,7 @@ from app.db_models import User
 from app.main import app
 from app.models import MindMapNode, SummarySection, TranscriptSegment, VideoAnalysisResponse, VideoSummary
 from app.security import hash_password, utcnow
+from app.services.membership_service import membership_service
 
 
 class TestMembershipAPI(unittest.TestCase):
@@ -73,6 +75,34 @@ class TestMembershipAPI(unittest.TestCase):
         payload = response.json()
         self.assertFalse(payload["is_member"])
         self.assertEqual(payload["status"], "inactive")
+
+    def test_membership_me_returns_lifetime_status(self):
+        user = self._create_verified_user(email="lifetime@example.com")
+        with SessionLocal() as db:
+            membership_service.activate_lifetime_membership(db, user["id"])
+            db.commit()
+
+        self._login(user["email"], user["password"])
+        response = self.client.get("/api/membership/me")
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["is_member"])
+        self.assertEqual(payload["plan_code"], "vip_lifetime")
+        self.assertEqual(payload["remaining_days"], 0)
+        self.assertIsNone(payload["expires_at"])
+
+    def test_debug_endpoint_can_grant_lifetime_membership_for_current_user(self):
+        user = self._create_verified_user(email="grant-lifetime@example.com")
+        self._login(user["email"], user["password"])
+
+        response = self.client.post("/api/dev/mock-billing/grant-lifetime")
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["message"], "永久会员已开通")
+        self.assertEqual(payload["plan_code"], "vip_lifetime")
+        self.assertTrue(payload["is_member"])
 
     @patch("app.routers.ai.video_ai_service.analyze_video")
     def test_ai_analyze_requires_login(self, mock_analyze_video):

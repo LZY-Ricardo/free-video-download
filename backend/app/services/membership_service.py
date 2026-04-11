@@ -16,6 +16,9 @@ from app.security import ensure_utc_naive, utcnow
 class MembershipService:
     """会员有效期与状态辅助逻辑。"""
 
+    LIFETIME_PLAN_CODE = "vip_lifetime"
+    LIFETIME_EXPIRES_AT = datetime(9999, 12, 31, 23, 59, 59)
+
     @staticmethod
     def calculate_membership_window(
         active_expires_at: datetime | None,
@@ -42,6 +45,8 @@ class MembershipService:
         membership = cls.get_membership(db, user_id)
         if not membership:
             return False
+        if membership.status == "active" and membership.plan_code == cls.LIFETIME_PLAN_CODE:
+            return True
         return membership.status == "active" and ensure_utc_naive(membership.expires_at) > utcnow()
 
     @classmethod
@@ -50,6 +55,14 @@ class MembershipService:
         now = utcnow()
         if not membership:
             return MembershipStatusResponse(is_member=False, status="inactive")
+        if membership.status == "active" and membership.plan_code == cls.LIFETIME_PLAN_CODE:
+            return MembershipStatusResponse(
+                is_member=True,
+                plan_code=membership.plan_code,
+                status=membership.status,
+                expires_at=None,
+                remaining_days=0,
+            )
         expires_at = ensure_utc_naive(membership.expires_at)
         if membership.status != "active" or expires_at <= now:
             return MembershipStatusResponse(is_member=False, status="inactive")
@@ -93,6 +106,28 @@ class MembershipService:
                 expires_at=expires_at,
                 status="active",
                 source_order_id=order.id,
+            )
+            db.add(membership)
+        return membership
+
+    @classmethod
+    def activate_lifetime_membership(cls, db: Session, user_id: str) -> UserMembership:
+        now = utcnow()
+        membership = cls.get_membership(db, user_id)
+        if membership:
+            membership.plan_code = cls.LIFETIME_PLAN_CODE
+            membership.started_at = now
+            membership.expires_at = cls.LIFETIME_EXPIRES_AT
+            membership.status = "active"
+            membership.source_order_id = None
+        else:
+            membership = UserMembership(
+                user_id=user_id,
+                plan_code=cls.LIFETIME_PLAN_CODE,
+                started_at=now,
+                expires_at=cls.LIFETIME_EXPIRES_AT,
+                status="active",
+                source_order_id=None,
             )
             db.add(membership)
         return membership

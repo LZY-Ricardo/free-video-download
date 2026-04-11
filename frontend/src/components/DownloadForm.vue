@@ -159,21 +159,19 @@ const handleDownload = (options: any) => {
         />
       </div>
 
-        <!-- ===== 右栏：AI 学习助手（高度跟随左栏） ===== -->
-        <div class="relative min-w-0">
-          <div class="lg:absolute lg:inset-0 lg:overflow-hidden">
-            <AIAssistant
-              :url="url"
-              :analyze-trigger="analyzeTrigger"
-              :authenticated="authenticated"
-              :membership="membership"
-              :membership-loading="membershipLoading"
-              :checkout-loading="checkoutLoading"
-              :payment-open="paymentOpen"
-              @open-auth="$emit('open-auth', $event)"
-              @start-checkout="$emit('start-checkout')"
-            />
-          </div>
+        <!-- ===== 右栏：AI 学习助手 ===== -->
+        <div class="min-w-0 self-start">
+          <AIAssistant
+            :url="url"
+            :analyze-trigger="analyzeTrigger"
+            :authenticated="authenticated"
+            :membership="membership"
+            :membership-loading="membershipLoading"
+            :checkout-loading="checkoutLoading"
+            :payment-open="paymentOpen"
+            @open-auth="$emit('open-auth', $event)"
+            @start-checkout="$emit('start-checkout')"
+          />
         </div>
       </div>
 
