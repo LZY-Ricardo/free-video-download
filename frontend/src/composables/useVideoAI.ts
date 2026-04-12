@@ -39,6 +39,11 @@ export function useVideoAI() {
 
   let abortController: AbortController | null = null
 
+  const apiBaseUrl = (() => {
+    const baseUrl = apiClient.defaults.baseURL || '/api'
+    return baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl
+  })()
+
   const analyzeVideo = async (url: string) => {
     if (!url) {
       analysisError.value = '请先输入视频链接'
@@ -65,11 +70,12 @@ export function useVideoAI() {
     abortController = new AbortController()
 
     try {
-      const response = await fetch('/api/ai/analyze/stream', {
+      const response = await fetch(`${apiBaseUrl}/ai/analyze/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
         signal: abortController.signal,
+        credentials: 'include',
       })
 
       if (!response.ok) {
@@ -234,7 +240,7 @@ export function useVideoAI() {
   }
 
   const streamQuestionAnswer = async (analysisId: string, q: string, chatIndex: number) => {
-    const response = await fetch('/api/ai/chat/stream', {
+    const response = await fetch(`${apiBaseUrl}/ai/chat/stream`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -243,6 +249,7 @@ export function useVideoAI() {
         analysis_id: analysisId,
         question: q,
       }),
+      credentials: 'include',
     })
 
     if (!response.ok) {
@@ -413,7 +420,10 @@ export function useVideoAI() {
 
     try {
       const response = await fetch(
-        `/api/ai/transcript/download/${encodeURIComponent(analysisId)}?format=${encodeURIComponent(format)}`,
+        `${apiBaseUrl}/ai/transcript/download/${encodeURIComponent(analysisId)}?format=${encodeURIComponent(format)}`,
+        {
+          credentials: 'include',
+        },
       )
       if (!response.ok) {
         throw new Error(await readResponseError(response))
