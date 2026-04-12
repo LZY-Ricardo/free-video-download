@@ -35,6 +35,27 @@ RESOLVER_API_TOKEN=replace-with-a-long-random-string
 
 然后通过环境变量注入到容器。
 
+## 自动清理策略
+
+服务启动时会自动清理 `downloads/` 目录中过期文件，默认阈值为：
+
+```bash
+24 小时
+```
+
+可通过环境变量覆盖：
+
+```bash
+DOWNLOAD_CLEANUP_EXPIRE_HOURS=24
+```
+
+## 一键清理
+
+```powershell
+./cleanup-downloads.cmd
+./cleanup-downloads.ps1 -ExpireHours 24
+```
+
 ## 对接前端
 
 前端默认读取：

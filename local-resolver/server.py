@@ -4,6 +4,7 @@ import os
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from html import unescape
 from pathlib import Path
 from threading import Lock
@@ -32,9 +33,11 @@ WHITESPACE_PATTERN = __import__("re").compile(r"\s+")
 DOWNLOAD_DIR = os.path.join(os.path.dirname(__file__), "downloads")
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 BASE_DIR = Path(os.path.dirname(__file__))
+DOWNLOADS_DIR = BASE_DIR / "downloads"
 MODELS_DIR = BASE_DIR / "models"
 WHISPER_MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "small")
 WHISPER_COMPUTE_TYPE = os.getenv("WHISPER_COMPUTE_TYPE", "int8")
+DOWNLOAD_CLEANUP_EXPIRE_HOURS = int(os.getenv("DOWNLOAD_CLEANUP_EXPIRE_HOURS", "24"))
 
 app = FastAPI(title="VidGrab Local Resolver", version="1.0.0")
 app.add_middleware(
@@ -50,6 +53,25 @@ executor = ThreadPoolExecutor(max_workers=2)
 
 def get_resolver_token() -> str:
     return (os.getenv("RESOLVER_API_TOKEN") or "").strip()
+
+
+def cleanup_old_downloads(expire_hours: int = DOWNLOAD_CLEANUP_EXPIRE_HOURS) -> int:
+    cutoff = datetime.now() - timedelta(hours=expire_hours)
+    removed = 0
+    DOWNLOADS_DIR.mkdir(parents=True, exist_ok=True)
+
+    for path in DOWNLOADS_DIR.iterdir():
+        if not path.is_file():
+            continue
+        try:
+            modified_at = datetime.fromtimestamp(path.stat().st_mtime)
+            if modified_at < cutoff:
+                path.unlink(missing_ok=True)
+                removed += 1
+        except Exception:
+            continue
+
+    return removed
 
 
 def require_resolver_token(
@@ -756,4 +778,5 @@ def download_file(task_id: str, _: None = Depends(require_resolver_token)) -> Fi
 if __name__ == "__main__":
     import uvicorn
 
+    cleanup_old_downloads()
     uvicorn.run("server:app", host="127.0.0.1", port=61337, reload=False)
