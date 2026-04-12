@@ -1,0 +1,12 @@
+serverAddr = "120.55.48.68"
+serverPort = 7000
+
+auth.method = "token"
+auth.token = "replace-with-the-same-frp-token"
+
+[[proxies]]
+name = "vidgrab-local-resolver"
+type = "http"
+localIP = "127.0.0.1"
+localPort = 61337
+customDomains = ["resolver.sunandyu.top"]

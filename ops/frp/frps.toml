@@ -1,0 +1,11 @@
+bindPort = 7000
+
+auth.method = "token"
+auth.token = "replace-with-a-long-random-frp-token"
+
+webServer.addr = "127.0.0.1"
+webServer.port = 17500
+webServer.user = "admin"
+webServer.password = "replace-with-a-strong-password"
+
+vhostHTTPPort = 18080

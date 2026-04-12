@@ -70,6 +70,18 @@ PowerShell：
 ./quick-start.ps1 -ForceInstall
 ```
 
+停止项目：
+
+```powershell
+./stop-project.cmd
+```
+
+重启项目：
+
+```powershell
+./restart-project.cmd
+```
+
 ### 3. 手动启动后端
 
 ```bash

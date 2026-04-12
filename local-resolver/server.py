@@ -5,10 +5,10 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from threading import Lock
-from typing import Any
+from typing import Any, Annotated
 
 import yt_dlp
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi import Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
@@ -29,6 +29,20 @@ app.add_middleware(
 )
 
 executor = ThreadPoolExecutor(max_workers=2)
+
+
+def get_resolver_token() -> str:
+    return (os.getenv("RESOLVER_API_TOKEN") or "").strip()
+
+
+def require_resolver_token(
+    token: Annotated[str | None, Header(alias="X-Resolver-Token")] = None,
+) -> None:
+    expected_token = get_resolver_token()
+    if not expected_token:
+        return
+    if token != expected_token:
+        raise HTTPException(status_code=401, detail="本地解析节点未授权")
 
 
 class InfoRequest(BaseModel):
@@ -138,7 +152,7 @@ def health() -> dict[str, str]:
 
 
 @app.post("/api/info")
-def info(req: InfoRequest) -> dict[str, Any]:
+def info(req: InfoRequest, _: None = Depends(require_resolver_token)) -> dict[str, Any]:
     try:
         info_obj, strategy = _extract_with_fallback(
             req.url,
@@ -205,7 +219,7 @@ def _run_download(task_id: str, req: DownloadRequest) -> None:
 
 
 @app.post("/api/download")
-def download(req: DownloadRequest) -> dict[str, str]:
+def download(req: DownloadRequest, _: None = Depends(require_resolver_token)) -> dict[str, str]:
     task_id = str(uuid.uuid4())
     with TASK_LOCK:
         TASKS[task_id] = TaskRecord(task_id=task_id)
@@ -217,6 +231,7 @@ def download(req: DownloadRequest) -> dict[str, str]:
 def proxy_image(
     url: str = Query(..., description="图片 URL"),
     platform: str | None = Query(None, description="平台名"),
+    _: None = Depends(require_resolver_token),
 ) -> Response:
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -234,7 +249,7 @@ def proxy_image(
 
 
 @app.get("/api/download/status/{task_id}")
-def download_status(task_id: str) -> dict[str, Any]:
+def download_status(task_id: str, _: None = Depends(require_resolver_token)) -> dict[str, Any]:
     with TASK_LOCK:
         task = TASKS.get(task_id)
     if not task:
@@ -251,7 +266,7 @@ def download_status(task_id: str) -> dict[str, Any]:
 
 
 @app.get("/api/download/file/{task_id}")
-def download_file(task_id: str) -> FileResponse:
+def download_file(task_id: str, _: None = Depends(require_resolver_token)) -> FileResponse:
     with TASK_LOCK:
         task = TASKS.get(task_id)
     if not task:

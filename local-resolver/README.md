@@ -13,11 +13,29 @@ python server.py
 
 默认监听：`http://127.0.0.1:61337`
 
+## Docker 部署
+
+```bash
+cd local-resolver
+docker compose up -d --build
+```
+
+默认映射端口：`61337:61337`
+
+如需对公网暴露，建议配置 token：
+
+```bash
+RESOLVER_API_TOKEN=replace-with-a-long-random-string
+```
+
+然后通过环境变量注入到容器。
+
 ## 对接前端
 
 前端默认读取：
 
 - `VITE_LOCAL_RESOLVER_BASE_URL`（默认 `http://127.0.0.1:61337/api`）
+- `VITE_LOCAL_RESOLVER_TOKEN`（可选，对应请求头 `X-Resolver-Token`）
 
 不配置也能用默认值。
 

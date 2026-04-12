@@ -3,6 +3,12 @@ import type { VideoInfo, TaskStatus } from '@/types'
 import apiClient from '@/api/client'
 import localResolverClient, { LOCAL_RESOLVER_BASE } from '@/api/localResolverClient'
 import { getDisplayProgress } from '@/utils/downloadProgress'
+import {
+  resolveInfoFallbackErrorMessage,
+  resolveInfoPrimaryErrorMessage,
+  shouldPreferLocalResolver,
+  shouldTryLocalResolverFallback,
+} from '@/utils/downloadFallback'
 
 export function useDownload() {
   const url = ref('')
@@ -40,26 +46,6 @@ export function useDownload() {
     return match ? match[0] : text
   }
 
-  const isBilibiliUrl = (input: string): boolean => {
-    const text = (input || '').toLowerCase()
-    return text.includes('bilibili.com') || text.includes('b23.tv')
-  }
-
-  const isBilibiliRiskControlError = (message: string): boolean => {
-    const text = (message || '').toLowerCase()
-    return text.includes('412') || text.includes('precondition failed') || text.includes('风控')
-  }
-
-  const buildLocalResolverGuidance = () =>
-    [
-      '当前链接触发 B 站风控，已尝试切换本地解析模式但本地助手不可用。',
-      '请在你的电脑启动本地助手后重试：',
-      '1) 进入项目目录 `local-resolver`',
-      '2) 执行 `pip install -r requirements.txt`',
-      '3) 执行 `python server.py`',
-      `4) 保持本地服务运行（默认 ${LOCAL_RESOLVER_BASE}）`,
-    ].join('\n')
-
   const tryLocalResolverInfo = async (videoUrl: string): Promise<VideoInfo> => {
     const response = await localResolverClient.post<VideoInfo>('/info', { url: videoUrl })
     resolverMode.value = 'local'
@@ -70,8 +56,13 @@ export function useDownload() {
     return {
       ...response.data,
       thumbnail_proxy_url: thumbnailProxyUrl,
-      note: [response.data.note, '当前使用本地解析模式（你的电脑网络环境）'].filter(Boolean).join(' | '),
     }
+  }
+
+  const tryServerResolverInfo = async (videoUrl: string): Promise<VideoInfo> => {
+    const response = await apiClient.post<VideoInfo>('/info', { url: videoUrl })
+    resolverMode.value = 'server'
+    return response.data
   }
 
   // 获取视频信息
@@ -101,22 +92,37 @@ export function useDownload() {
     resolverMode.value = 'server'
 
     try {
-      const response = await apiClient.post<VideoInfo>('/info', { url: url.value })
-      videoInfo.value = response.data
-      status.value = 'ready'
-    } catch (err: any) {
-      const detail = err.response?.data?.detail || '获取视频信息失败'
-      const statusCode = err.response?.status as number | undefined
-      const shouldTryLocalFallback =
-        isBilibiliUrl(url.value) &&
-        (isBilibiliRiskControlError(detail) || !statusCode || statusCode >= 500)
-
-      if (shouldTryLocalFallback) {
+      if (shouldPreferLocalResolver(url.value)) {
         try {
           videoInfo.value = await tryLocalResolverInfo(url.value)
           status.value = 'ready'
-        } catch {
-          error.value = buildLocalResolverGuidance()
+        } catch (localErr: any) {
+          try {
+            videoInfo.value = await tryServerResolverInfo(url.value)
+            status.value = 'ready'
+          } catch (serverErr: any) {
+            error.value = resolveInfoPrimaryErrorMessage(
+              serverErr,
+              resolveInfoFallbackErrorMessage(localErr, '获取视频信息失败'),
+            )
+            status.value = 'error'
+          }
+        }
+      } else {
+        videoInfo.value = await tryServerResolverInfo(url.value)
+        status.value = 'ready'
+      }
+    } catch (err: any) {
+      const detail = err.response?.data?.detail || '获取视频信息失败'
+      const statusCode = err.response?.status as number | undefined
+      const canFallbackToLocal = shouldTryLocalResolverFallback(url.value, detail, statusCode)
+
+      if (canFallbackToLocal) {
+        try {
+          videoInfo.value = await tryLocalResolverInfo(url.value)
+          status.value = 'ready'
+        } catch (localErr: any) {
+          error.value = resolveInfoFallbackErrorMessage(localErr, detail)
           status.value = 'error'
         }
       } else {

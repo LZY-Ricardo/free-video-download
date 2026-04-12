@@ -1,0 +1,9 @@
+services:
+  frpc:
+    image: snowdreamtech/frpc:0.61.2
+    container_name: vidgrab-frpc
+    restart: unless-stopped
+    command: ["-c", "/etc/frp/frpc.toml"]
+    volumes:
+      - ./frpc.toml:/etc/frp/frpc.toml:ro
+    network_mode: "host"

@@ -28,3 +28,5 @@ backend/pip/
 
 # Local production env overrides
 .env.production
+.vercel
+local-resolver/frpc.toml

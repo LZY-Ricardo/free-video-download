@@ -1,0 +1,13 @@
+services:
+  local-resolver:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vidgrab-local-resolver
+    restart: unless-stopped
+    environment:
+      RESOLVER_API_TOKEN: ${RESOLVER_API_TOKEN:-}
+    ports:
+      - "61337:61337"
+    volumes:
+      - ./downloads:/app/downloads

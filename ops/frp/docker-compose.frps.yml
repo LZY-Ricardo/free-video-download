@@ -1,0 +1,11 @@
+services:
+  frps:
+    image: snowdreamtech/frps:0.61.2
+    container_name: vidgrab-frps
+    restart: unless-stopped
+    command: ["-c", "/etc/frp/frps.toml"]
+    volumes:
+      - ./ops/frp/frps.toml:/etc/frp/frps.toml:ro
+    ports:
+      - "7000:7000"
+      - "127.0.0.1:18080:18080"
