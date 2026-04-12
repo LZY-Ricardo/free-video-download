@@ -11,7 +11,7 @@
 
 - `vidgrab.sunandyu.top` -> Vercel 前端
 - `api.vidgrab.sunandyu.top` -> VPS 后端
-- `resolver.sunandyu.top` -> VPS 反代到 `frps` 提供的 HTTP 入口，再转发到本地 `local-resolver`
+- `api.vidgrab.sunandyu.top/local-resolver/*` -> VPS 反代到 `frps` 提供的 HTTP 入口，再转发到本地 `local-resolver`
 
 前端解析策略已实现为：
 
@@ -112,7 +112,7 @@ cp frpc.toml.example frpc.toml
 ### 3. 启动 FRP 客户端容器
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.frpc.yml up -d frpc
+docker compose up -d
 ```
 
 ## 五、验证
@@ -136,13 +136,13 @@ curl http://127.0.0.1:18080/api/health
 ### 2. 公网验证
 
 ```bash
-curl https://resolver.sunandyu.top/api/health
+curl https://api.vidgrab.sunandyu.top/local-resolver/api/health
 ```
 
 若启用了 `RESOLVER_API_TOKEN`，请携带请求头：
 
 ```bash
-curl https://resolver.sunandyu.top/api/health -H "X-Resolver-Token: your-token"
+curl https://api.vidgrab.sunandyu.top/local-resolver/api/health -H "X-Resolver-Token: your-token"
 ```
 
 ## 六、前端接入
@@ -150,7 +150,7 @@ curl https://resolver.sunandyu.top/api/health -H "X-Resolver-Token: your-token"
 在 Vercel 配置：
 
 ```env
-VITE_LOCAL_RESOLVER_BASE_URL=https://resolver.sunandyu.top/api
+VITE_LOCAL_RESOLVER_BASE_URL=https://api.vidgrab.sunandyu.top/local-resolver/api
 VITE_LOCAL_RESOLVER_TOKEN=replace-with-resolver-token
 ```
 

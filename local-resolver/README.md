@@ -20,6 +20,11 @@ cd local-resolver
 docker compose up -d --build
 ```
 
+该命令会同时启动：
+
+- `vidgrab-local-resolver`
+- `vidgrab-frpc`
+
 默认映射端口：`61337:61337`
 
 如需对公网暴露，建议配置 token：
@@ -36,6 +41,12 @@ RESOLVER_API_TOKEN=replace-with-a-long-random-string
 
 - `VITE_LOCAL_RESOLVER_BASE_URL`（默认 `http://127.0.0.1:61337/api`）
 - `VITE_LOCAL_RESOLVER_TOKEN`（可选，对应请求头 `X-Resolver-Token`）
+
+当前推荐的生产入口：
+
+```bash
+VITE_LOCAL_RESOLVER_BASE_URL=https://api.vidgrab.sunandyu.top/local-resolver/api
+```
 
 不配置也能用默认值。
 
