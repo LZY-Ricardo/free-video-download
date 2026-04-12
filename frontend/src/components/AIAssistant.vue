@@ -223,7 +223,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="bg-white border border-gray-200 rounded-xl p-4 h-full flex flex-col overflow-hidden">
+  <div class="bg-white border border-gray-200 rounded-xl p-4 h-full flex flex-col overflow-hidden lg:max-h-[calc(100vh-10rem)]">
     <div class="flex items-center justify-between gap-3 mb-3">
       <div class="flex items-center gap-2 min-w-0">
         <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0">
@@ -261,6 +261,7 @@ onBeforeUnmount(() => {
 
     <MembershipCard
       v-else-if="!hasActiveMembership && shouldShowLockedCard"
+      class="overflow-y-auto"
       :authenticated="props.authenticated"
       :membership="props.membership"
       :checkout-loading="props.checkoutLoading"

@@ -120,10 +120,13 @@ const handleDownload = (options: any) => {
     </div>
 
     <!-- ========== 双栏内容区：解析成功后展示 ========== -->
-    <div v-if="hasVideoInfo && videoInfo" class="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-4">
+    <div
+      v-if="hasVideoInfo && videoInfo"
+      class="grid grid-cols-1 gap-4 lg:grid-cols-[2fr_3fr] lg:items-stretch"
+    >
 
       <!-- ===== 左栏：视频信息 + 下载 ===== -->
-      <div class="flex flex-col gap-3">
+      <div class="flex flex-col gap-3 lg:max-h-[calc(100vh-10rem)]">
         <!-- 视频信息 -->
         <VideoInfo v-if="status === 'ready'" :info="videoInfo" compact />
 
@@ -160,7 +163,7 @@ const handleDownload = (options: any) => {
       </div>
 
         <!-- ===== 右栏：AI 学习助手 ===== -->
-        <div class="min-w-0 self-start">
+        <div class="min-w-0 self-start lg:self-stretch lg:max-h-[calc(100vh-10rem)]">
           <AIAssistant
             :url="url"
             :analyze-trigger="analyzeTrigger"
