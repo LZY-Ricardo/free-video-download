@@ -7,7 +7,7 @@ const localResolverToken = (import.meta.env.VITE_LOCAL_RESOLVER_TOKEN as string 
 
 const localResolverClient = axios.create({
   baseURL: localResolverBase,
-  timeout: 60000,
+  timeout: 300000,
   withCredentials: false,
   headers: {
     'Content-Type': 'application/json',

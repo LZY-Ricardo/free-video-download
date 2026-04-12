@@ -1,7 +1,9 @@
 import { ref } from 'vue'
 
 import apiClient from '@/api/client'
+import localResolverClient from '@/api/localResolverClient'
 import type {
+  TranscriptSegment,
   VideoAnalysisResponse,
   VideoChatResponse,
 } from '@/types'
@@ -15,6 +17,20 @@ export interface ChatTurn {
 interface SSEEventMessage {
   event: string
   data: any
+}
+
+interface LocalAnalyzePrepareResponse {
+  video_title: string
+  transcript: TranscriptSegment[]
+  transcript_language?: string
+  source_url?: string
+}
+
+interface LocalAnalyzePrepareTaskResponse {
+  task_id: string
+  status: 'processing' | 'completed' | 'failed'
+  result?: LocalAnalyzePrepareResponse
+  error?: string
 }
 
 export type TranscriptFormat = 'srt' | 'vtt' | 'txt'
@@ -70,6 +86,23 @@ export function useVideoAI() {
     abortController = new AbortController()
 
     try {
+      analysisStage.value = '准备本地转录'
+      analysisProgress.value = 10
+
+      try {
+        const startResponse = await localResolverClient.post<{ task_id: string; status: string }>('/ai/prepare/start', { url })
+        const prepared = await waitForLocalPrepare(startResponse.data.task_id)
+        analysisStage.value = '云端生成摘要'
+        analysisProgress.value = 70
+        const response = await apiClient.post<VideoAnalysisResponse>('/ai/analyze/local', prepared)
+        analysisResult.value = response.data
+        analysisProgress.value = 100
+        analysisStage.value = '分析完成'
+        return
+      } catch {
+        // 静默回退到云端流式分析
+      }
+
       const response = await fetch(`${apiBaseUrl}/ai/analyze/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -465,6 +498,27 @@ export function useVideoAI() {
 
     const filenameMatch = contentDisposition.match(/filename="?([^";]+)"?/i)
     return filenameMatch?.[1] || null
+  }
+
+  const waitForLocalPrepare = async (taskId: string): Promise<LocalAnalyzePrepareResponse> => {
+    const deadline = Date.now() + 10 * 60 * 1000
+
+    while (Date.now() < deadline) {
+      const response = await localResolverClient.get<LocalAnalyzePrepareTaskResponse>(`/ai/prepare/status/${taskId}`)
+      const payload = response.data
+
+      if (payload.status === 'completed' && payload.result) {
+        return payload.result
+      }
+
+      if (payload.status === 'failed') {
+        throw new Error(payload.error || '本地 AI 预处理失败')
+      }
+
+      await new Promise((resolve) => window.setTimeout(resolve, 2000))
+    }
+
+    throw new Error('本地 AI 预处理超时')
   }
 
   return {
