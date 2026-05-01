@@ -4,10 +4,11 @@ FastAPI 主应用
 import os
 from typing import Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.exc import SQLAlchemyError
 from app.config import settings
-from app.database import Base, engine
+from app.database import Base, check_database_ready, engine
 from app import db_models  # noqa: F401
 from app.routers import auth, info, download, direct, image, ai, membership, billing, dev_mock_billing
 
@@ -59,6 +60,29 @@ async def root():
 async def health():
     """健康检查"""
     return {"status": "healthy"}
+
+
+@app.get("/api/health/ready")
+async def health_ready():
+    """就绪检查，要求数据库可连接。"""
+    try:
+        check_database_ready()
+    except SQLAlchemyError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "status": "unhealthy",
+                "checks": {
+                    "database": "unavailable",
+                },
+            },
+        ) from exc
+    return {
+        "status": "healthy",
+        "checks": {
+            "database": "ok",
+        },
+    }
 
 
 def should_enable_reload(platform_name: Optional[str] = None, env_value: Optional[str] = None) -> bool:

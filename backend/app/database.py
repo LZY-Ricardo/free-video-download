@@ -3,7 +3,7 @@
 """
 from __future__ import annotations
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 from app.config import settings
@@ -29,6 +29,13 @@ def _build_engine():
 engine = _build_engine()
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
 Base = declarative_base()
+
+
+def check_database_ready() -> bool:
+    """执行一次轻量查询，确认数据库当前可用。"""
+    with engine.connect() as conn:
+        conn.execute(text("select 1"))
+    return True
 
 
 def get_db():
